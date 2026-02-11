@@ -1,20 +1,17 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Search, SlidersHorizontal, MapPin, Star, Heart, ChevronRight, 
-  Home, Map, Clock, MessageCircle, User, List, X, Navigation,
-  Coffee, Umbrella, Utensils, TreePine, Building, Loader2
+  Search, MapPin, Star, Heart, ChevronRight, 
+  Home, Map, Clock, MessageCircle, User, List, Loader2
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import dynamic from 'next/dynamic'
 
-// Dynamically import map component to avoid SSR issues
 const MapComponent = dynamic(() => import('@/components/MapComponent'), {
   ssr: false,
   loading: () => (
@@ -24,26 +21,17 @@ const MapComponent = dynamic(() => import('@/components/MapComponent'), {
   )
 })
 
-const categories = [
-  { id: 'all', label: 'For you', icon: Star },
-  { id: 'Restaurant', label: 'Restaurants', icon: Utensils },
-  { id: 'Cafe', label: 'Cafes', icon: Coffee },
-  { id: 'Beach', label: 'Beaches', icon: Umbrella },
-  { id: 'Nature', label: 'Nature', icon: TreePine },
-  { id: 'Museum', label: 'Museums', icon: Building },
-]
-
-const BottomNav = ({ active = 'map' }) => {
+const BottomNav = ({ active = 'explore' }) => {
   const navItems = [
-    { id: 'home', icon: Home, label: 'Home', href: '/chat' },
-    { id: 'map', icon: Map, label: 'Map', href: '/explore' },
+    { id: 'home', icon: MessageCircle, label: 'Chats', href: '/chat', filled: true },
+    { id: 'explore', icon: Map, label: 'Explore', href: '/explore' },
     { id: 'timeline', icon: Clock, label: 'Timeline', href: '/timeline' },
-    { id: 'chat', icon: MessageCircle, label: 'Chat', href: '/messages' },
-    { id: 'profile', icon: User, label: 'Profile', href: '/profile' },
+    { id: 'saved', icon: Heart, label: 'Saved', href: '/saved' },
+    { id: 'profile', icon: User, label: 'Me', href: '/profile' },
   ]
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-white/20 safe-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 safe-bottom">
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
         {navItems.map((item) => {
           const Icon = item.icon
@@ -52,14 +40,14 @@ const BottomNav = ({ active = 'map' }) => {
             <Link
               key={item.id}
               href={item.href}
-              className={`flex flex-col items-center justify-center px-4 py-2 rounded-xl transition-all ${
+              className={`flex flex-col items-center justify-center px-4 py-2 transition-all ${
                 isActive 
-                  ? 'text-[#00A8CC] bg-[#00A8CC]/10' 
-                  : 'text-gray-500 hover:text-[#00A8CC]'
+                  ? 'text-gray-900 dark:text-white' 
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
               onClick={() => navigator.vibrate && navigator.vibrate(30)}
             >
-              <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : ''}`} />
+              <Icon className={`w-6 h-6 ${isActive && item.filled ? 'fill-current' : ''}`} />
               <span className="text-xs mt-1 font-medium">{item.label}</span>
             </Link>
           )
@@ -69,116 +57,67 @@ const BottomNav = ({ active = 'map' }) => {
   )
 }
 
-const VenueCard = ({ venue, compact = false }) => {
+const VenueCard = ({ venue }) => {
   const [saved, setSaved] = useState(false)
 
   const handleSave = (e) => {
     e.stopPropagation()
     setSaved(!saved)
     if (navigator.vibrate) navigator.vibrate(50)
-    toast.success(saved ? 'Removed from saved' : 'Saved to favorites!')
-  }
-
-  if (compact) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-3 p-3 glass-card rounded-xl"
-      >
-        <img 
-          src={venue.image} 
-          alt={venue.name}
-          className="w-16 h-16 rounded-lg object-cover"
-        />
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 dark:text-white truncate">{venue.name}</h3>
-          <p className="text-xs text-gray-500 truncate">{venue.category} • {venue.distance}</p>
-          <div className="flex items-center mt-1">
-            <Star className="w-3 h-3 text-[#F4A261] fill-[#F4A261]" />
-            <span className="ml-1 text-sm font-medium text-gray-700 dark:text-gray-300">{venue.rating}</span>
-          </div>
-        </div>
-        <button
-          onClick={handleSave}
-          className={`p-2 rounded-full transition-all ${
-            saved ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 hover:bg-gray-200'
-          }`}
-        >
-          <Heart className={`w-4 h-4 ${saved ? 'fill-current' : ''}`} />
-        </button>
-      </motion.div>
-    )
+    toast.success(saved ? 'Removed from saved' : 'Saved!')
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.02 }}
-      className="relative"
-    >
-      <Card className="glass-card overflow-hidden hover:shadow-xl transition-all duration-300">
-        <div className="relative h-40 overflow-hidden">
-          <img 
-            src={venue.image} 
-            alt={venue.name}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute top-3 right-3 flex gap-2">
-            <button
-              onClick={handleSave}
-              className={`p-2 rounded-full backdrop-blur-sm transition-all ${
-                saved ? 'bg-red-500 text-white' : 'bg-white/80 text-gray-600 hover:bg-white'
-              }`}
-            >
-              <Heart className={`w-4 h-4 ${saved ? 'fill-current' : ''}`} />
-            </button>
-            <button className="p-2 rounded-full bg-white/80 text-gray-600 hover:bg-white backdrop-blur-sm">
-              <MapPin className="w-4 h-4" />
-            </button>
+    <Card className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 rounded-2xl">
+      <div className="relative h-36 overflow-hidden">
+        <img 
+          src={venue.image} 
+          alt={venue.name}
+          className="w-full h-full object-cover"
+        />
+        <button
+          onClick={handleSave}
+          className={`absolute top-3 right-3 p-2.5 rounded-full backdrop-blur-sm transition-all ${
+            saved ? 'bg-red-500 text-white' : 'bg-white/90 text-gray-400'
+          }`}
+        >
+          <Heart className={`w-5 h-5 ${saved ? 'fill-current' : ''}`} />
+        </button>
+        <div className="absolute bottom-3 left-3">
+          <span className="px-2.5 py-1 rounded-full bg-white/90 text-xs font-medium text-gray-700">
+            {venue.category}
+          </span>
+        </div>
+      </div>
+      <div className="p-4">
+        <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{venue.name}</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{venue.address}</p>
+        <div className="flex items-center justify-between mt-3">
+          <div className="flex items-center gap-2">
+            <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+            <span className="font-semibold text-gray-700 dark:text-gray-300">{venue.rating}</span>
+            <span className="text-gray-300 dark:text-gray-600">•</span>
+            <span className="text-sm text-gray-500">{venue.distance}</span>
           </div>
-          <div className="absolute bottom-3 left-3">
-            <span className="px-3 py-1 rounded-full bg-white/90 text-xs font-medium text-gray-700">
-              {venue.category}
+          <Link href={`/venue/${venue.id}`}>
+            <span className="text-[#00A8CC] font-medium text-sm flex items-center hover:underline">
+              View <ChevronRight className="w-4 h-4 ml-0.5" />
             </span>
-          </div>
+          </Link>
         </div>
-        <div className="p-4">
-          <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-1">{venue.name}</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 truncate">{venue.address}</p>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center">
-                <Star className="w-4 h-4 text-[#F4A261] fill-[#F4A261]" />
-                <span className="ml-1 font-semibold text-gray-700 dark:text-gray-300">{venue.rating}</span>
-              </div>
-              <span className="text-gray-400">•</span>
-              <span className="text-sm text-gray-500">{venue.distance}</span>
-            </div>
-            <Link href={`/venue/${venue.id}`}>
-              <Button size="sm" variant="outline" className="rounded-full text-[#00A8CC] border-[#00A8CC] hover:bg-[#00A8CC] hover:text-white">
-                View <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </Card>
-    </motion.div>
+      </div>
+    </Card>
   )
 }
 
 const ExplorePage = () => {
   const [venues, setVenues] = useState([])
   const [filteredVenues, setFilteredVenues] = useState([])
-  const [selectedCategory, setSelectedCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [viewMode, setViewMode] = useState('map') // 'map' or 'list'
+  const [viewMode, setViewMode] = useState('map')
   const [selectedVenue, setSelectedVenue] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [userLocation, setUserLocation] = useState(null)
 
-  // Fetch venues on mount
   useEffect(() => {
     const fetchVenues = async () => {
       try {
@@ -194,44 +133,21 @@ const ExplorePage = () => {
       }
     }
     fetchVenues()
-
-    // Get user location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          })
-        },
-        (error) => {
-          console.log('Geolocation error:', error)
-          // Default to Sydney CBD
-          setUserLocation({ lat: -33.8688, lng: 151.2093 })
-        }
-      )
-    }
   }, [])
 
-  // Filter venues when category or search changes
   useEffect(() => {
-    let filtered = venues
-
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(v => v.category === selectedCategory)
-    }
-
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
-      filtered = filtered.filter(v => 
+      const filtered = venues.filter(v => 
         v.name.toLowerCase().includes(q) || 
         v.category.toLowerCase().includes(q) ||
         v.address.toLowerCase().includes(q)
       )
+      setFilteredVenues(filtered)
+    } else {
+      setFilteredVenues(venues)
     }
-
-    setFilteredVenues(filtered)
-  }, [selectedCategory, searchQuery, venues])
+  }, [searchQuery, venues])
 
   const handleVenueSelect = (venue) => {
     setSelectedVenue(venue)
@@ -246,130 +162,94 @@ const ExplorePage = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
       {/* Search Header */}
-      <div className="sticky top-0 z-40 glass border-b border-white/20 safe-top">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          {/* Search Bar */}
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search"
-                className="pl-10 rounded-full bg-gray-100 dark:bg-gray-800 border-0 h-11"
-              />
-            </div>
-            <Button variant="outline" size="icon" className="rounded-full h-11 w-11 shrink-0">
-              <SlidersHorizontal className="w-5 h-5" />
-            </Button>
-          </div>
-
-          {/* Location & Categories */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1 text-gray-700 dark:text-gray-300">
-              <Navigation className="w-4 h-4" />
-              <span className="font-medium">Sydney</span>
-              <ChevronRight className="w-4 h-4 rotate-90" />
-            </div>
-          </div>
-
-          {/* Category Pills */}
-          <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-            {categories.map((cat) => {
-              const Icon = cat.icon
-              const isActive = selectedCategory === cat.id
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => {
-                    setSelectedCategory(cat.id)
-                    if (navigator.vibrate) navigator.vibrate(30)
-                  }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all ${
-                    isActive
-                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
-                  }`}
-                >
-                  <span className="font-medium text-sm">{cat.label}</span>
-                </button>
-              )
-            })}
+      <div className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 safe-top">
+        <div className="max-w-lg mx-auto px-4 py-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search Sydney..."
+              className="pl-10 rounded-full bg-gray-100 dark:bg-gray-800 border-0 h-11"
+            />
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="relative">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-[60vh]">
-            <Loader2 className="w-8 h-8 animate-spin text-[#00A8CC]" />
-          </div>
-        ) : viewMode === 'map' ? (
-          // Map View
-          <div className="relative h-[calc(100vh-220px)]">
-            <MapComponent 
-              venues={filteredVenues}
-              selectedVenue={selectedVenue}
-              onVenueSelect={handleVenueSelect}
-              userLocation={userLocation}
-            />
+      {isLoading ? (
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-[#00A8CC]" />
+        </div>
+      ) : viewMode === 'map' ? (
+        // Map View
+        <div className="relative h-[calc(100vh-140px)]">
+          <MapComponent 
+            venues={filteredVenues}
+            selectedVenue={selectedVenue}
+            onVenueSelect={handleVenueSelect}
+            fitBounds={true}
+          />
 
-            {/* Selected Venue Card */}
-            <AnimatePresence>
-              {selectedVenue && (
-                <motion.div
-                  initial={{ opacity: 0, y: 100 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 100 }}
-                  className="absolute bottom-4 left-4 right-4 z-[1000]"
-                >
-                  <div className="relative">
-                    <button
-                      onClick={() => setSelectedVenue(null)}
-                      className="absolute -top-2 -right-2 z-10 p-1 rounded-full bg-gray-900 text-white shadow-lg"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                    <VenueCard venue={selectedVenue} compact />
+          {/* Selected Venue Card */}
+          <AnimatePresence>
+            {selectedVenue && (
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 50 }}
+                className="absolute bottom-20 left-4 right-4 z-[1000]"
+              >
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                  <div className="flex gap-3 p-3">
+                    <img 
+                      src={selectedVenue.image} 
+                      alt={selectedVenue.name}
+                      className="w-20 h-20 rounded-xl object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{selectedVenue.name}</h3>
+                      <p className="text-xs text-gray-500 truncate mt-0.5">{selectedVenue.category} • {selectedVenue.distance}</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{selectedVenue.rating}</span>
+                      </div>
+                    </div>
+                    <Link href={`/venue/${selectedVenue.id}`} className="self-center">
+                      <span className="text-[#00A8CC] font-medium text-sm">View</span>
+                    </Link>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        ) : (
-          // List View
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            {/* Results Header */}
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                {selectedCategory === 'all' ? 'All Venues' : categories.find(c => c.id === selectedCategory)?.label}
-              </h2>
-              <span className="text-sm text-gray-500">{filteredVenues.length} places</span>
-            </div>
-
-            {/* Venue Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredVenues.map((venue, idx) => (
-                <VenueCard key={venue.id} venue={venue} />
-              ))}
-            </div>
-
-            {filteredVenues.length === 0 && (
-              <div className="text-center py-12">
-                <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">No venues found</p>
-              </div>
+                </div>
+              </motion.div>
             )}
+          </AnimatePresence>
+        </div>
+      ) : (
+        // List View
+        <div className="max-w-lg mx-auto px-4 py-4">
+          <div className="grid gap-4">
+            {filteredVenues.map((venue) => (
+              <VenueCard key={venue.id} venue={venue} />
+            ))}
           </div>
-        )}
 
-        {/* View Toggle Button */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          {filteredVenues.length === 0 && (
+            <div className="text-center py-12">
+              <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500">No venues found</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* View Toggle Button */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40"
+      >
+        <button
           onClick={toggleViewMode}
-          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-6 py-3 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-xl"
+          className="flex items-center gap-2 px-6 py-3 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-lg hover:shadow-xl transition-all active:scale-95"
         >
           {viewMode === 'map' ? (
             <>
@@ -382,10 +262,10 @@ const ExplorePage = () => {
               <span className="font-medium">Map</span>
             </>
           )}
-        </motion.button>
-      </div>
+        </button>
+      </motion.div>
 
-      <BottomNav active="map" />
+      <BottomNav active="explore" />
     </div>
   )
 }
