@@ -155,15 +155,18 @@ backend:
 
   - task: "Search venues endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented GET /api/search?q=query - filters venues by category"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: GET /api/search working correctly. Tested multiple queries (beach, cafe, restaurant, empty). Returns proper JSON with venues array, query echo, and total count. Smart filtering works: beach query returns 3 beach venues, cafe returns 2 cafes, restaurant returns 2 restaurants. Empty query returns top 5 rated venues."
 
 frontend:
   - task: "Hero Landing Page"
