@@ -125,15 +125,18 @@ backend:
 
   - task: "AI Chat endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented POST /api/chat - accepts query, returns AI response + filtered venues"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: POST /api/chat working correctly. Returns proper JSON with message, venues array, and query fields. AI integration with Emergent LLM working. Proper error handling for missing query (400 status). Venue filtering working correctly based on query keywords."
 
   - task: "Get all venues endpoint"
     implemented: true
