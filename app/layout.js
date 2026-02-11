@@ -6,8 +6,13 @@ export const metadata = {
   description: 'Your AI-powered guide to discovering the best venues, beaches, cafes, and hidden gems in Sydney. Check-in, earn badges, and share with friends.',
   keywords: 'Sydney, travel, venues, cafes, beaches, check-in, discover',
   manifest: '/manifest.json',
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
   themeColor: '#00A8CC',
-  viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
 }
 
 export default function RootLayout({ children }) {
