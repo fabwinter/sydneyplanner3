@@ -3,37 +3,33 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Send, Mic, Coffee, Umbrella, Utensils, TreePine, Gem, MapPin, 
+  Send, Plus, Coffee, Umbrella, Utensils, TreePine, Gem, MapPin, 
   Star, Heart, ChevronRight, Home, Map, Clock, MessageCircle, User,
-  Loader2, Sparkles
+  Loader2, Search
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
 const quickButtons = [
-  { icon: Coffee, label: 'Best brunch spots nearby', emoji: '🍳', query: 'best brunch cafes in Sydney' },
-  { icon: Umbrella, label: 'Family-friendly beaches', emoji: '🏖️', query: 'family friendly beaches in Sydney' },
-  { icon: Utensils, label: 'Romantic dinner ideas', emoji: '🌃', query: 'romantic dinner restaurants in Sydney' },
-  { icon: Gem, label: 'Hidden gems to explore', emoji: '🔮', query: 'hidden gem spots in Sydney' },
-  { icon: Coffee, label: 'Quiet cafes for work', emoji: '☕', query: 'quiet cafes for working in Sydney' },
-  { icon: TreePine, label: 'Nature walks in Sydney', emoji: '🌿', query: 'nature walks and hiking trails in Sydney' },
+  { label: 'Best brunch spots', emoji: '🍳', query: 'best brunch cafes in Sydney' },
+  { label: 'Family-friendly beaches', emoji: '🏖️', query: 'family friendly beaches in Sydney' },
+  { label: 'Hidden gems to explore', emoji: '💎', query: 'hidden gem spots in Sydney' },
 ]
 
 const BottomNav = ({ active = 'home' }) => {
   const navItems = [
-    { id: 'home', icon: Home, label: 'Home', href: '/chat' },
-    { id: 'map', icon: Map, label: 'Map', href: '/explore' },
+    { id: 'home', icon: MessageCircle, label: 'Chats', href: '/chat', filled: true },
+    { id: 'map', icon: Map, label: 'Explore', href: '/explore' },
     { id: 'timeline', icon: Clock, label: 'Timeline', href: '/timeline' },
-    { id: 'chat', icon: MessageCircle, label: 'Chat', href: '/messages' },
-    { id: 'profile', icon: User, label: 'Profile', href: '/profile' },
+    { id: 'saved', icon: Heart, label: 'Saved', href: '/saved' },
+    { id: 'profile', icon: User, label: 'Me', href: '/profile' },
   ]
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-white/20 safe-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 safe-bottom">
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
         {navItems.map((item) => {
           const Icon = item.icon
@@ -42,14 +38,14 @@ const BottomNav = ({ active = 'home' }) => {
             <Link
               key={item.id}
               href={item.href}
-              className={`flex flex-col items-center justify-center px-4 py-2 rounded-xl transition-all ${
+              className={`flex flex-col items-center justify-center px-4 py-2 transition-all ${
                 isActive 
-                  ? 'text-[#00A8CC] bg-[#00A8CC]/10' 
-                  : 'text-gray-500 hover:text-[#00A8CC]'
+                  ? 'text-gray-900 dark:text-white' 
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
               onClick={() => navigator.vibrate && navigator.vibrate(30)}
             >
-              <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : ''}`} />
+              <Icon className={`w-6 h-6 ${isActive && item.filled ? 'fill-current' : ''}`} />
               <span className="text-xs mt-1 font-medium">{item.label}</span>
             </Link>
           )
@@ -65,7 +61,7 @@ const VenueCard = ({ venue, index }) => {
   const handleSave = () => {
     setSaved(!saved)
     if (navigator.vibrate) navigator.vibrate(50)
-    toast.success(saved ? 'Removed from saved' : 'Saved to favorites!')
+    toast.success(saved ? 'Removed from saved' : 'Saved!')
   }
 
   return (
@@ -74,44 +70,40 @@ const VenueCard = ({ venue, index }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
     >
-      <Card className="glass-card overflow-hidden mb-4 hover:shadow-xl transition-all duration-300">
-        <div className="relative h-40 overflow-hidden">
+      <Card className="bg-white dark:bg-gray-800 overflow-hidden mb-3 shadow-sm border border-gray-100 dark:border-gray-700 rounded-2xl">
+        <div className="relative h-36 overflow-hidden">
           <img 
             src={venue.image} 
             alt={venue.name}
             className="w-full h-full object-cover"
           />
-          <div className="absolute top-3 right-3 flex gap-2">
-            <button
-              onClick={handleSave}
-              className={`p-2 rounded-full backdrop-blur-sm transition-all ${
-                saved ? 'bg-red-500 text-white' : 'bg-white/80 text-gray-600 hover:bg-white'
-              }`}
-            >
-              <Heart className={`w-4 h-4 ${saved ? 'fill-current' : ''}`} />
-            </button>
-          </div>
+          <button
+            onClick={handleSave}
+            className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-sm transition-all ${
+              saved ? 'bg-red-500 text-white' : 'bg-white/80 text-gray-600'
+            }`}
+          >
+            <Heart className={`w-4 h-4 ${saved ? 'fill-current' : ''}`} />
+          </button>
           <div className="absolute bottom-3 left-3">
-            <span className="px-3 py-1 rounded-full bg-white/90 text-xs font-medium text-gray-700">
+            <span className="px-2.5 py-1 rounded-full bg-white/90 text-xs font-medium text-gray-700">
               {venue.category}
             </span>
           </div>
         </div>
-        <div className="p-4">
-          <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-1">{venue.name}</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{venue.address}</p>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center">
-                <Star className="w-4 h-4 text-[#F4A261] fill-[#F4A261]" />
-                <span className="ml-1 font-semibold text-gray-700 dark:text-gray-300">{venue.rating}</span>
-              </div>
-              <span className="text-gray-400">•</span>
-              <span className="text-sm text-gray-500">{venue.distance}</span>
+        <div className="p-3">
+          <h3 className="font-semibold text-gray-900 dark:text-white">{venue.name}</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{venue.address}</p>
+          <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center gap-1.5">
+              <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{venue.rating}</span>
+              <span className="text-gray-300 dark:text-gray-600">•</span>
+              <span className="text-xs text-gray-500">{venue.distance}</span>
             </div>
             <Link href={`/venue/${venue.id}`}>
-              <Button size="sm" variant="outline" className="rounded-full text-[#00A8CC] border-[#00A8CC] hover:bg-[#00A8CC] hover:text-white">
-                View <ChevronRight className="w-4 h-4 ml-1" />
+              <Button size="sm" variant="ghost" className="h-8 text-[#00A8CC] hover:text-[#00A8CC] hover:bg-[#00A8CC]/10 rounded-full px-3">
+                View <ChevronRight className="w-4 h-4 ml-0.5" />
               </Button>
             </Link>
           </div>
@@ -129,7 +121,6 @@ const ChatPage = () => {
   const messagesEndRef = useRef(null)
 
   useEffect(() => {
-    // Load user name from localStorage
     const storedName = localStorage.getItem('sydney_user_name')
     if (storedName) setUserName(storedName)
   }, [])
@@ -146,10 +137,8 @@ const ChatPage = () => {
     const messageText = query || input.trim()
     if (!messageText) return
 
-    // Haptic feedback
     if (navigator.vibrate) navigator.vibrate(30)
 
-    // Add user message
     const userMessage = {
       id: Date.now(),
       type: 'user',
@@ -169,7 +158,6 @@ const ChatPage = () => {
 
       const data = await response.json()
 
-      // Add AI response
       const aiMessage = {
         id: Date.now() + 1,
         type: 'assistant',
@@ -187,90 +175,78 @@ const ChatPage = () => {
     }
   }
 
-  const handleQuickButton = (query) => {
-    handleSend(query)
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 pb-24">
-      {/* Header */}
-      <div className="sticky top-0 z-40 glass border-b border-white/20 safe-top">
-        <div className="max-w-lg mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00A8CC] to-[#F4A261] flex items-center justify-center">
-              <MapPin className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="font-bold text-lg text-gray-900 dark:text-white">Sydney Planner</h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">AI-Powered Discovery</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Chat Area */}
-      <div className="max-w-lg mx-auto px-4 pt-6">
-        {messages.length === 0 ? (
-          // Welcome Screen
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-32">
+      {messages.length === 0 ? (
+        // Welcome Screen - Clean minimal design
+        <div className="flex flex-col items-center justify-center min-h-[80vh] px-6">
+          {/* Sydney Illustration */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center py-8"
+            transition={{ duration: 0.5 }}
+            className="mb-8"
           >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
-              className="inline-block mb-6"
-            >
-              <Avatar className="w-20 h-20 border-4 border-[#00A8CC]/20">
-                <AvatarImage src="https://images.unsplash.com/photo-1568246654191-5d306d62227d?w=100&h=100&fit=crop" />
-                <AvatarFallback className="bg-[#00A8CC] text-white text-2xl">SP</AvatarFallback>
-              </Avatar>
-            </motion.div>
-            
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              G'day {userName}! 👋
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-sm mx-auto">
-              I'm your Sydney Planner assistant. Tell me what you're in the mood for, and I'll find the perfect spots in Sydney!
-            </p>
-
-            {/* Quick Buttons */}
-            <div className="space-y-3">
-              {quickButtons.slice(0, 3).map((btn, i) => (
-                <motion.button
-                  key={i}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + i * 0.1 }}
-                  onClick={() => handleQuickButton(btn.query)}
-                  className="w-full max-w-xs mx-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <span className="text-xl">{btn.emoji}</span>
-                  <span className="font-medium text-gray-700 dark:text-gray-300">{btn.label}</span>
-                </motion.button>
-              ))}
-              
-              <div className="flex flex-wrap justify-center gap-3 mt-4">
-                {quickButtons.slice(3).map((btn, i) => (
-                  <motion.button
-                    key={i}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 + i * 0.1 }}
-                    onClick={() => handleQuickButton(btn.query)}
-                    className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <span className="text-lg">{btn.emoji}</span>
-                    <span className="font-medium text-sm text-gray-700 dark:text-gray-300">{btn.label}</span>
-                  </motion.button>
-                ))}
+            <div className="relative w-48 h-32">
+              {/* Sunset background */}
+              <div className="absolute inset-0 flex items-end justify-center">
+                <div className="w-36 h-24 rounded-t-full bg-gradient-to-t from-orange-200 to-orange-100 opacity-80" />
+              </div>
+              {/* Cloud */}
+              <div className="absolute top-4 left-1/2 -translate-x-1/2">
+                <div className="flex gap-0">
+                  <div className="w-16 h-8 bg-white rounded-full shadow-sm" />
+                  <div className="w-12 h-8 bg-white rounded-full shadow-sm -ml-6 mt-2" />
+                </div>
+              </div>
+              {/* Sydney Opera House silhouette */}
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-end gap-0.5">
+                <div className="w-4 h-10 bg-gray-700 rounded-t-full transform -rotate-12" />
+                <div className="w-5 h-14 bg-gray-800 rounded-t-full" />
+                <div className="w-4 h-10 bg-gray-700 rounded-t-full transform rotate-12" />
+                <div className="w-8 h-6 bg-gray-600 ml-1" />
+              </div>
+              {/* Location pin */}
+              <div className="absolute top-6 left-1/2 -translate-x-1/2">
+                <div className="w-6 h-6 bg-[#00A8CC] rounded-full flex items-center justify-center shadow-lg">
+                  <MapPin className="w-3.5 h-3.5 text-white" />
+                </div>
               </div>
             </div>
           </motion.div>
-        ) : (
-          // Messages
+
+          {/* Greeting */}
+          <motion.h1
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white text-center mb-8"
+          >
+            Where to today, {userName.toLowerCase()}?
+          </motion.h1>
+
+          {/* Quick Buttons - Clean pills */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="flex flex-wrap justify-center gap-3 max-w-sm"
+          >
+            {quickButtons.map((btn, i) => (
+              <button
+                key={i}
+                onClick={() => handleSend(btn.query)}
+                className="flex items-center gap-2 px-5 py-3 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all active:scale-95 border border-gray-200 dark:border-gray-700"
+              >
+                <span className="text-base">{btn.emoji}</span>
+                <span className="font-medium text-sm text-gray-700 dark:text-gray-300">{btn.label}</span>
+              </button>
+            ))}
+          </motion.div>
+        </div>
+      ) : (
+        // Chat Messages
+        <div className="max-w-lg mx-auto px-4 pt-6">
           <div className="space-y-4 pb-4">
             <AnimatePresence>
               {messages.map((msg) => (
@@ -281,21 +257,16 @@ const ChatPage = () => {
                   className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {msg.type === 'user' ? (
-                    <div className="max-w-[85%] px-4 py-3 rounded-2xl rounded-br-sm bg-[#00A8CC] text-white">
+                    <div className="max-w-[85%] px-4 py-3 rounded-2xl rounded-br-md bg-[#00A8CC] text-white">
                       {msg.text}
                     </div>
                   ) : (
-                    <div className="max-w-full">
-                      <div className="flex items-start gap-3 mb-3">
-                        <Avatar className="w-8 h-8">
-                          <AvatarFallback className="bg-[#00A8CC] text-white text-xs">SP</AvatarFallback>
-                        </Avatar>
-                        <div className="glass-card px-4 py-3 rounded-2xl rounded-tl-sm max-w-[280px]">
-                          <p className="text-gray-700 dark:text-gray-300">{msg.text}</p>
-                        </div>
+                    <div className="max-w-full w-full">
+                      <div className="px-4 py-3 rounded-2xl rounded-tl-md bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 mb-3">
+                        <p className="text-gray-700 dark:text-gray-300">{msg.text}</p>
                       </div>
                       {msg.venues && msg.venues.length > 0 && (
-                        <div className="ml-11 space-y-3">
+                        <div className="space-y-2">
                           {msg.venues.map((venue, idx) => (
                             <VenueCard key={venue.id} venue={venue} index={idx} />
                           ))}
@@ -311,44 +282,41 @@ const ChatPage = () => {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-start gap-3"
+                className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 w-fit"
               >
-                <Avatar className="w-8 h-8">
-                  <AvatarFallback className="bg-[#00A8CC] text-white text-xs">SP</AvatarFallback>
-                </Avatar>
-                <div className="glass-card px-4 py-3 rounded-2xl rounded-tl-sm">
-                  <div className="flex items-center gap-2 text-gray-500">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Finding the best spots...</span>
-                  </div>
-                </div>
+                <Loader2 className="w-4 h-4 animate-spin text-[#00A8CC]" />
+                <span className="text-gray-500 text-sm">Finding spots...</span>
               </motion.div>
             )}
             
             <div ref={messagesEndRef} />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Input Area */}
-      <div className="fixed bottom-16 left-0 right-0 z-40 p-4 bg-gradient-to-t from-white via-white to-transparent dark:from-gray-900 dark:via-gray-900">
+      {/* Input Area - Clean minimal design */}
+      <div className="fixed bottom-16 left-0 right-0 z-40 p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
         <div className="max-w-lg mx-auto">
-          <div className="flex items-center gap-2 p-2 rounded-full glass border border-gray-200 dark:border-gray-700">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Ask me anything about Sydney..."
-              className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base"
-            />
-            <Button
-              onClick={() => handleSend()}
-              disabled={!input.trim() || isLoading}
-              size="icon"
-              className="rounded-full bg-[#00A8CC] hover:bg-[#00D4FF] w-10 h-10 shrink-0"
-            >
-              <Send className="w-4 h-4" />
-            </Button>
+          <div className="flex items-center gap-3">
+            <button className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors shrink-0">
+              <Plus className="w-5 h-5" />
+            </button>
+            <div className="flex-1 relative">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                placeholder="Ask anything..."
+                className="w-full h-11 rounded-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 pl-4 pr-12 text-base placeholder:text-gray-400"
+              />
+              <button
+                onClick={() => handleSend()}
+                disabled={!input.trim() || isLoading}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-[#00A8CC] disabled:opacity-50 transition-colors"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
