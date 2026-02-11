@@ -140,15 +140,18 @@ backend:
 
   - task: "Get all venues endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented GET /api/venues - returns all Sydney venues"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: GET /api/venues working correctly. Returns proper JSON with venues array (10 venues) and total count. All venue objects have required fields: id, name, category, address, lat, lng, rating."
 
   - task: "Search venues endpoint"
     implemented: true
