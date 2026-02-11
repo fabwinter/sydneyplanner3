@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Send, Plus, Map, MapPin, Star, Heart, ChevronRight, 
-  Home, Clock, MessageCircle, User, Loader2
+  Clock, MessageCircle, User, Loader2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,7 +22,7 @@ const quickButtons = [
 
 const BottomNav = ({ active = 'home' }) => {
   const navItems = [
-    { id: 'home', icon: MessageCircle, label: 'Chats', href: '/chat', filled: true },
+    { id: 'home', icon: MessageCircle, label: 'Chats', href: '/chat' },
     { id: 'explore', icon: Map, label: 'Explore', href: '/explore' },
     { id: 'timeline', icon: Clock, label: 'Timeline', href: '/timeline' },
     { id: 'saved', icon: Heart, label: 'Saved', href: '/saved' },
@@ -31,7 +31,7 @@ const BottomNav = ({ active = 'home' }) => {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 safe-bottom">
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
+      <div className="flex items-center justify-around h-16 max-w-lg mx-auto relative">
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = active === item.id
@@ -39,14 +39,9 @@ const BottomNav = ({ active = 'home' }) => {
             <Link
               key={item.id}
               href={item.href}
-              className={`flex flex-col items-center justify-center px-4 py-2 transition-all ${
-                isActive 
-                  ? 'text-gray-900 dark:text-white' 
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
-              onClick={() => navigator.vibrate && navigator.vibrate(30)}
+              className={`flex flex-col items-center justify-center px-4 py-2 transition-all ${isActive ? 'text-gray-900 dark:text-white' : 'text-gray-400 hover:text-gray-600'}`}
             >
-              <Icon className={`w-6 h-6 ${isActive && item.filled ? 'fill-current' : ''}`} />
+              <Icon className={`w-6 h-6 ${isActive ? 'fill-current' : ''}`} />
               <span className="text-xs mt-1 font-medium">{item.label}</span>
             </Link>
           )
@@ -74,23 +69,15 @@ const VenueCard = ({ venue, index }) => {
     >
       <Card className="bg-white dark:bg-gray-800 overflow-hidden mb-3 shadow-sm border border-gray-100 dark:border-gray-700 rounded-2xl">
         <div className="relative h-36 overflow-hidden">
-          <img 
-            src={venue.image} 
-            alt={venue.name}
-            className="w-full h-full object-cover"
-          />
+          <img src={venue.image} alt={venue.name} className="w-full h-full object-cover" />
           <button
             onClick={handleSave}
-            className={`absolute top-3 right-3 p-2.5 rounded-full backdrop-blur-sm transition-all ${
-              saved ? 'bg-red-500 text-white' : 'bg-white/90 text-gray-400'
-            }`}
+            className={`absolute top-3 right-3 p-2.5 rounded-full backdrop-blur-sm transition-all ${saved ? 'bg-red-500 text-white' : 'bg-white/90 text-gray-400'}`}
           >
             <Heart className={`w-5 h-5 ${saved ? 'fill-current' : ''}`} />
           </button>
           <div className="absolute bottom-3 left-3">
-            <span className="px-2.5 py-1 rounded-full bg-white/90 text-xs font-medium text-gray-700">
-              {venue.category}
-            </span>
+            <span className="px-2.5 py-1 rounded-full bg-white/90 text-xs font-medium text-gray-700">{venue.category}</span>
           </div>
         </div>
         <div className="p-4">
@@ -104,9 +91,7 @@ const VenueCard = ({ venue, index }) => {
               <span className="text-sm text-gray-500">{venue.distance}</span>
             </div>
             <Link href={`/venue/${venue.id}`}>
-              <span className="text-[#00A8CC] font-medium text-sm flex items-center hover:underline">
-                View <ChevronRight className="w-4 h-4 ml-0.5" />
-              </span>
+              <span className="text-[#00A8CC] font-medium text-sm flex items-center hover:underline">View <ChevronRight className="w-4 h-4 ml-0.5" /></span>
             </Link>
           </div>
         </div>
@@ -139,15 +124,9 @@ const ChatPage = () => {
   const handleSend = async (query = null) => {
     const messageText = query || input.trim()
     if (!messageText) return
-
     if (navigator.vibrate) navigator.vibrate(30)
 
-    const userMessage = {
-      id: Date.now(),
-      type: 'user',
-      text: messageText,
-      timestamp: new Date()
-    }
+    const userMessage = { id: Date.now(), type: 'user', text: messageText, timestamp: new Date() }
     setChatMessages(prev => [...prev, userMessage])
     setInput('')
     setIsLoading(true)
@@ -158,19 +137,10 @@ const ChatPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: messageText })
       })
-
       const data = await response.json()
-
-      const aiMessage = {
-        id: Date.now() + 1,
-        type: 'assistant',
-        text: data.message,
-        venues: data.venues || [],
-        timestamp: new Date()
-      }
+      const aiMessage = { id: Date.now() + 1, type: 'assistant', text: data.message, venues: data.venues || [], timestamp: new Date() }
       setChatMessages(prev => [...prev, aiMessage])
       setCurrentVenues(data.venues || [])
-
     } catch (error) {
       console.error('Chat error:', error)
       toast.error('Failed to get response. Please try again.')
@@ -181,24 +151,22 @@ const ChatPage = () => {
 
   const handleOpenMap = () => {
     if (navigator.vibrate) navigator.vibrate(30)
-    router.push('/map')
+    router.push('/explore')
   }
 
-  // Check if there are venues to show map button
   const hasVenues = currentVenues.length > 0
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-32">
+    <motion.div
+      initial={{ x: -50, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: -50, opacity: 0 }}
+      transition={{ type: 'tween', duration: 0.25, ease: 'easeOut' }}
+      className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-32"
+    >
       {chatMessages.length === 0 ? (
-        // Welcome Screen
         <div className="flex flex-col items-center justify-center min-h-[80vh] px-6">
-          {/* Sydney Illustration */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-8"
-          >
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="mb-8">
             <div className="relative w-48 h-32">
               <div className="absolute inset-0 flex items-end justify-center">
                 <div className="w-36 h-24 rounded-t-full bg-gradient-to-t from-orange-200 to-orange-100 opacity-80" />
@@ -223,27 +191,13 @@ const ChatPage = () => {
             </div>
           </motion.div>
 
-          <motion.h1
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white text-center mb-8"
-          >
+          <motion.h1 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white text-center mb-8">
             Where to today, {userName}?
           </motion.h1>
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="flex flex-wrap justify-center gap-3 max-w-sm"
-          >
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="flex flex-wrap justify-center gap-3 max-w-sm">
             {quickButtons.map((btn, i) => (
-              <button
-                key={i}
-                onClick={() => handleSend(btn.query)}
-                className="flex items-center gap-2 px-5 py-3 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all active:scale-95 border border-gray-200 dark:border-gray-700"
-              >
+              <button key={i} onClick={() => handleSend(btn.query)} className="flex items-center gap-2 px-5 py-3 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all active:scale-95 border border-gray-200 dark:border-gray-700">
                 <span className="text-base">{btn.emoji}</span>
                 <span className="font-medium text-sm text-gray-700 dark:text-gray-300">{btn.label}</span>
               </button>
@@ -251,21 +205,13 @@ const ChatPage = () => {
           </motion.div>
         </div>
       ) : (
-        // Chat Messages
         <div className="max-w-lg mx-auto px-4 pt-6">
           <div className="space-y-4 pb-4">
             <AnimatePresence>
               {chatMessages.map((msg) => (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
+                <motion.div key={msg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {msg.type === 'user' ? (
-                    <div className="max-w-[85%] px-4 py-3 rounded-2xl rounded-br-md bg-[#00A8CC] text-white">
-                      {msg.text}
-                    </div>
+                    <div className="max-w-[85%] px-4 py-3 rounded-2xl rounded-br-md bg-[#00A8CC] text-white">{msg.text}</div>
                   ) : (
                     <div className="max-w-full w-full">
                       <div className="px-4 py-3 rounded-2xl rounded-tl-md bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 mb-3">
@@ -273,9 +219,7 @@ const ChatPage = () => {
                       </div>
                       {msg.venues && msg.venues.length > 0 && (
                         <div className="space-y-3">
-                          {msg.venues.map((venue, idx) => (
-                            <VenueCard key={venue.id} venue={venue} index={idx} />
-                          ))}
+                          {msg.venues.map((venue, idx) => (<VenueCard key={venue.id} venue={venue} index={idx} />))}
                         </div>
                       )}
                     </div>
@@ -285,11 +229,7 @@ const ChatPage = () => {
             </AnimatePresence>
             
             {isLoading && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 w-fit"
-              >
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 w-fit">
                 <Loader2 className="w-4 h-4 animate-spin text-[#00A8CC]" />
                 <span className="text-gray-500 text-sm">Finding spots...</span>
               </motion.div>
@@ -298,17 +238,9 @@ const ChatPage = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Floating Map Button */}
           {hasVenues && !isLoading && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex justify-center pb-6"
-            >
-              <button
-                onClick={handleOpenMap}
-                className="flex items-center gap-2 px-6 py-3 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-lg hover:shadow-xl transition-all active:scale-95"
-              >
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center pb-6">
+              <button onClick={handleOpenMap} className="flex items-center gap-2 px-6 py-3 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-lg hover:shadow-xl transition-all active:scale-95">
                 <Map className="w-5 h-5" />
                 <span className="font-medium">Map</span>
               </button>
@@ -317,7 +249,6 @@ const ChatPage = () => {
         </div>
       )}
 
-      {/* Input Area */}
       <div className="fixed bottom-16 left-0 right-0 z-40 p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
         <div className="max-w-lg mx-auto">
           <div className="flex items-center gap-3">
@@ -325,18 +256,8 @@ const ChatPage = () => {
               <Plus className="w-5 h-5" />
             </button>
             <div className="flex-1 relative">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Ask anything..."
-                className="w-full h-11 rounded-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 pl-4 pr-12 text-base placeholder:text-gray-400"
-              />
-              <button
-                onClick={() => handleSend()}
-                disabled={!input.trim() || isLoading}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-[#00A8CC] disabled:opacity-50 transition-colors"
-              >
+              <Input value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSend()} placeholder="Ask anything..." className="w-full h-11 rounded-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 pl-4 pr-12 text-base placeholder:text-gray-400" />
+              <button onClick={() => handleSend()} disabled={!input.trim() || isLoading} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-[#00A8CC] disabled:opacity-50 transition-colors">
                 <Send className="w-5 h-5" />
               </button>
             </div>
@@ -345,7 +266,7 @@ const ChatPage = () => {
       </div>
 
       <BottomNav active="home" />
-    </div>
+    </motion.div>
   )
 }
 
