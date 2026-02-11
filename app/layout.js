@@ -1,5 +1,6 @@
 import './globals.css'
 import { Toaster } from 'sonner'
+import { VenueProvider } from '@/lib/VenueContext'
 
 export const metadata = {
   title: 'Sydney Planner - Discover, Check-in, Relive Sydney',
@@ -24,9 +25,11 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className="min-h-screen">
-        {children}
-        <Toaster position="top-center" richColors />
+      <body className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <VenueProvider>
+          {children}
+          <Toaster position="top-center" richColors />
+        </VenueProvider>
       </body>
     </html>
   )

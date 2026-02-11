@@ -3,15 +3,16 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Send, Plus, Coffee, Umbrella, Utensils, TreePine, Gem, MapPin, 
-  Star, Heart, ChevronRight, Home, Map, Clock, MessageCircle, User,
-  Loader2, Search
+  Send, Plus, Map, MapPin, Star, Heart, ChevronRight, 
+  Home, Clock, MessageCircle, User, Loader2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { useVenues } from '@/lib/VenueContext'
 
 const quickButtons = [
   { label: 'Best brunch spots', emoji: '🍳', query: 'best brunch cafes in Sydney' },
@@ -22,7 +23,7 @@ const quickButtons = [
 const BottomNav = ({ active = 'home' }) => {
   const navItems = [
     { id: 'home', icon: MessageCircle, label: 'Chats', href: '/chat', filled: true },
-    { id: 'map', icon: Map, label: 'Explore', href: '/explore' },
+    { id: 'explore', icon: Map, label: 'Explore', href: '/explore' },
     { id: 'timeline', icon: Clock, label: 'Timeline', href: '/timeline' },
     { id: 'saved', icon: Heart, label: 'Saved', href: '/saved' },
     { id: 'profile', icon: User, label: 'Me', href: '/profile' },
@@ -58,7 +59,8 @@ const BottomNav = ({ active = 'home' }) => {
 const VenueCard = ({ venue, index }) => {
   const [saved, setSaved] = useState(false)
 
-  const handleSave = () => {
+  const handleSave = (e) => {
+    e.stopPropagation()
     setSaved(!saved)
     if (navigator.vibrate) navigator.vibrate(50)
     toast.success(saved ? 'Removed from saved' : 'Saved!')
@@ -79,11 +81,11 @@ const VenueCard = ({ venue, index }) => {
           />
           <button
             onClick={handleSave}
-            className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-sm transition-all ${
-              saved ? 'bg-red-500 text-white' : 'bg-white/80 text-gray-600'
+            className={`absolute top-3 right-3 p-2.5 rounded-full backdrop-blur-sm transition-all ${
+              saved ? 'bg-red-500 text-white' : 'bg-white/90 text-gray-400'
             }`}
           >
-            <Heart className={`w-4 h-4 ${saved ? 'fill-current' : ''}`} />
+            <Heart className={`w-5 h-5 ${saved ? 'fill-current' : ''}`} />
           </button>
           <div className="absolute bottom-3 left-3">
             <span className="px-2.5 py-1 rounded-full bg-white/90 text-xs font-medium text-gray-700">
@@ -91,20 +93,20 @@ const VenueCard = ({ venue, index }) => {
             </span>
           </div>
         </div>
-        <div className="p-3">
-          <h3 className="font-semibold text-gray-900 dark:text-white">{venue.name}</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{venue.address}</p>
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center gap-1.5">
-              <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{venue.rating}</span>
+        <div className="p-4">
+          <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{venue.name}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{venue.address}</p>
+          <div className="flex items-center justify-between mt-3">
+            <div className="flex items-center gap-2">
+              <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+              <span className="font-semibold text-gray-700 dark:text-gray-300">{venue.rating}</span>
               <span className="text-gray-300 dark:text-gray-600">•</span>
-              <span className="text-xs text-gray-500">{venue.distance}</span>
+              <span className="text-sm text-gray-500">{venue.distance}</span>
             </div>
             <Link href={`/venue/${venue.id}`}>
-              <Button size="sm" variant="ghost" className="h-8 text-[#00A8CC] hover:text-[#00A8CC] hover:bg-[#00A8CC]/10 rounded-full px-3">
+              <span className="text-[#00A8CC] font-medium text-sm flex items-center hover:underline">
                 View <ChevronRight className="w-4 h-4 ml-0.5" />
-              </Button>
+              </span>
             </Link>
           </div>
         </div>
@@ -114,15 +116,16 @@ const VenueCard = ({ venue, index }) => {
 }
 
 const ChatPage = () => {
-  const [messages, setMessages] = useState([])
+  const router = useRouter()
+  const { currentVenues, setCurrentVenues, chatMessages, setChatMessages } = useVenues()
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [userName, setUserName] = useState('Explorer')
+  const [userName, setUserName] = useState('explorer')
   const messagesEndRef = useRef(null)
 
   useEffect(() => {
     const storedName = localStorage.getItem('sydney_user_name')
-    if (storedName) setUserName(storedName)
+    if (storedName) setUserName(storedName.toLowerCase())
   }, [])
 
   const scrollToBottom = () => {
@@ -131,7 +134,7 @@ const ChatPage = () => {
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages])
+  }, [chatMessages])
 
   const handleSend = async (query = null) => {
     const messageText = query || input.trim()
@@ -145,7 +148,7 @@ const ChatPage = () => {
       text: messageText,
       timestamp: new Date()
     }
-    setMessages(prev => [...prev, userMessage])
+    setChatMessages(prev => [...prev, userMessage])
     setInput('')
     setIsLoading(true)
 
@@ -165,7 +168,8 @@ const ChatPage = () => {
         venues: data.venues || [],
         timestamp: new Date()
       }
-      setMessages(prev => [...prev, aiMessage])
+      setChatMessages(prev => [...prev, aiMessage])
+      setCurrentVenues(data.venues || [])
 
     } catch (error) {
       console.error('Chat error:', error)
@@ -175,10 +179,18 @@ const ChatPage = () => {
     }
   }
 
+  const handleOpenMap = () => {
+    if (navigator.vibrate) navigator.vibrate(30)
+    router.push('/map')
+  }
+
+  // Check if there are venues to show map button
+  const hasVenues = currentVenues.length > 0
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-32">
-      {messages.length === 0 ? (
-        // Welcome Screen - Clean minimal design
+      {chatMessages.length === 0 ? (
+        // Welcome Screen
         <div className="flex flex-col items-center justify-center min-h-[80vh] px-6">
           {/* Sydney Illustration */}
           <motion.div
@@ -188,25 +200,21 @@ const ChatPage = () => {
             className="mb-8"
           >
             <div className="relative w-48 h-32">
-              {/* Sunset background */}
               <div className="absolute inset-0 flex items-end justify-center">
                 <div className="w-36 h-24 rounded-t-full bg-gradient-to-t from-orange-200 to-orange-100 opacity-80" />
               </div>
-              {/* Cloud */}
               <div className="absolute top-4 left-1/2 -translate-x-1/2">
                 <div className="flex gap-0">
                   <div className="w-16 h-8 bg-white rounded-full shadow-sm" />
                   <div className="w-12 h-8 bg-white rounded-full shadow-sm -ml-6 mt-2" />
                 </div>
               </div>
-              {/* Sydney Opera House silhouette */}
               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-end gap-0.5">
                 <div className="w-4 h-10 bg-gray-700 rounded-t-full transform -rotate-12" />
                 <div className="w-5 h-14 bg-gray-800 rounded-t-full" />
                 <div className="w-4 h-10 bg-gray-700 rounded-t-full transform rotate-12" />
                 <div className="w-8 h-6 bg-gray-600 ml-1" />
               </div>
-              {/* Location pin */}
               <div className="absolute top-6 left-1/2 -translate-x-1/2">
                 <div className="w-6 h-6 bg-[#00A8CC] rounded-full flex items-center justify-center shadow-lg">
                   <MapPin className="w-3.5 h-3.5 text-white" />
@@ -215,17 +223,15 @@ const ChatPage = () => {
             </div>
           </motion.div>
 
-          {/* Greeting */}
           <motion.h1
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
             className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white text-center mb-8"
           >
-            Where to today, {userName.toLowerCase()}?
+            Where to today, {userName}?
           </motion.h1>
 
-          {/* Quick Buttons - Clean pills */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -249,7 +255,7 @@ const ChatPage = () => {
         <div className="max-w-lg mx-auto px-4 pt-6">
           <div className="space-y-4 pb-4">
             <AnimatePresence>
-              {messages.map((msg) => (
+              {chatMessages.map((msg) => (
                 <motion.div
                   key={msg.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -266,7 +272,7 @@ const ChatPage = () => {
                         <p className="text-gray-700 dark:text-gray-300">{msg.text}</p>
                       </div>
                       {msg.venues && msg.venues.length > 0 && (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {msg.venues.map((venue, idx) => (
                             <VenueCard key={venue.id} venue={venue} index={idx} />
                           ))}
@@ -291,10 +297,27 @@ const ChatPage = () => {
             
             <div ref={messagesEndRef} />
           </div>
+
+          {/* Floating Map Button */}
+          {hasVenues && !isLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-center pb-6"
+            >
+              <button
+                onClick={handleOpenMap}
+                className="flex items-center gap-2 px-6 py-3 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-lg hover:shadow-xl transition-all active:scale-95"
+              >
+                <Map className="w-5 h-5" />
+                <span className="font-medium">Map</span>
+              </button>
+            </motion.div>
+          )}
         </div>
       )}
 
-      {/* Input Area - Clean minimal design */}
+      {/* Input Area */}
       <div className="fixed bottom-16 left-0 right-0 z-40 p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
         <div className="max-w-lg mx-auto">
           <div className="flex items-center gap-3">
