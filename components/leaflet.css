@@ -1,0 +1,42 @@
+/* Leaflet custom styles */
+.leaflet-container {
+  font-family: 'Inter', sans-serif;
+}
+
+.custom-marker {
+  background: transparent;
+  border: none;
+}
+
+.user-location-marker {
+  background: transparent;
+  border: none;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 8px;
+}
+
+.leaflet-popup-tip {
+  background: white;
+}
+
+.custom-popup .leaflet-popup-content-wrapper {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Hide scrollbar for category pills */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
