@@ -174,7 +174,7 @@ backend:
     file: "/app/app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
@@ -182,6 +182,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Manually tested with curl - successfully creates check-ins in MongoDB. Response includes success flag and check-in ID."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: POST /api/checkins working perfectly. Tested 4 scenarios: (1) Create with all fields ✅ (2) Create with minimal required fields ✅ (3) Proper 400 validation for missing venue_id ✅ (4) Proper 400 validation for missing rating ✅. All responses return proper JSON with success, id, message, and storage fields. MongoDB fallback working correctly."
 
   - task: "Check-ins API (GET)"
     implemented: true
