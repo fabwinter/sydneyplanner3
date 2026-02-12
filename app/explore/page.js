@@ -1,14 +1,15 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Search, MapPin, Star, Heart, ChevronRight, ChevronDown, ChevronUp,
+  Search, MapPin, Star, Heart, ChevronRight, ChevronDown,
   Clock, MessageCircle, User, Map, Loader2, Navigation, RotateCcw,
   X, Share2, Check, Phone, Globe, Wifi, Car, Accessibility, UtensilsCrossed, 
-  PawPrint, ExternalLink, ListPlus, ChevronLeft
+  PawPrint, ExternalLink, ListPlus, Camera, ImagePlus
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -24,40 +25,179 @@ const MapComponent = dynamic(() => import('@/components/MapComponent'), {
   )
 })
 
-// Static map preview component
-const StaticMapPreview = ({ lat, lng, name }) => {
-  // Using OpenStreetMap static image via a tile server
-  const zoom = 15
-  const mapUrl = `https://maps.geoapify.com/v1/staticmap?style=osm-bright&width=600&height=300&center=lonlat:${lng},${lat}&zoom=${zoom}&marker=lonlat:${lng},${lat};color:%2300A8CC;size:medium&apiKey=demo`
-  
+// Check-In Modal Component
+const CheckInModal = ({ venue, isOpen, onClose, onComplete }) => {
+  const [rating, setRating] = useState(0)
+  const [comment, setComment] = useState('')
+  const [shareWithFriends, setShareWithFriends] = useState(true)
+  const [addToPublicFeed, setAddToPublicFeed] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  if (!venue || !isOpen) return null
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true)
+    if (navigator.vibrate) navigator.vibrate([50, 50, 50])
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    setIsSubmitting(false)
+    toast.success(`Checked in at ${venue.name}!`)
+    onComplete()
+    onClose()
+  }
+
   return (
-    <div className="relative w-full h-40 rounded-xl overflow-hidden bg-gray-200">
-      <img 
-        src={`https://api.mapbox.com/styles/v1/mapbox/light-v11/static/pin-l+00A8CC(${lng},${lat})/${lng},${lat},14,0/400x200@2x?access_token=pk.eyJ1IjoicGxhY2Vob2xkZXIiLCJhIjoiY2xhc3NpYyJ9.demo`}
-        alt="Map"
-        className="w-full h-full object-cover"
-        onError={(e) => {
-          // Fallback to a simple map placeholder
-          e.target.src = `https://www.openstreetmap.org/export/embed.html?bbox=${lng-0.01},${lat-0.01},${lng+0.01},${lat+0.01}&layer=mapnik&marker=${lat},${lng}`
-        }}
-      />
-      {/* Map overlay with location pin */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full bg-[#00A8CC] flex items-center justify-center shadow-lg">
-          <MapPin className="w-5 h-5 text-white" />
-        </div>
-      </div>
-      {/* Gradient overlay at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-3">
-        <p className="text-white text-sm font-medium truncate">{name}</p>
-      </div>
-    </div>
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/50 z-[3000]"
+          />
+          
+          {/* Modal */}
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl z-[3001] max-h-[85vh] overflow-hidden"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Check-In</h2>
+              <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+                <X className="w-6 h-6 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="overflow-y-auto max-h-[calc(85vh-140px)] p-4">
+              {/* Venue Name */}
+              <p className="text-center text-gray-600 dark:text-gray-400 mb-2">
+                Share your experience at
+              </p>
+              <h3 className="text-xl font-bold text-center text-gray-900 dark:text-white mb-6">
+                {venue.name}
+              </h3>
+
+              {/* Star Rating */}
+              <div className="mb-6">
+                <p className="text-center font-medium text-gray-700 dark:text-gray-300 mb-3">How was it?</p>
+                <div className="flex justify-center gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => {
+                        setRating(star)
+                        if (navigator.vibrate) navigator.vibrate(30)
+                      }}
+                      className="p-1"
+                    >
+                      <Star 
+                        className={`w-10 h-10 transition-colors ${
+                          star <= rating 
+                            ? 'text-amber-400 fill-amber-400' 
+                            : 'text-gray-300 dark:text-gray-600'
+                        }`} 
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Photo Upload */}
+              <div className="mb-6">
+                <p className="font-medium text-gray-700 dark:text-gray-300 mb-3">Add a photo</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-[#00A8CC] hover:bg-[#00A8CC]/5 transition-colors">
+                    <Camera className="w-8 h-8 text-gray-400 mb-2" />
+                    <span className="text-sm text-gray-500">Take photo</span>
+                  </button>
+                  <button className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-[#00A8CC] hover:bg-[#00A8CC]/5 transition-colors">
+                    <ImagePlus className="w-8 h-8 text-gray-400 mb-2" />
+                    <span className="text-sm text-gray-500">Upload</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Comment */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-medium text-gray-700 dark:text-gray-300">Comment</p>
+                  <span className="text-sm text-gray-400">{comment.length}/300</span>
+                </div>
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value.slice(0, 300))}
+                  placeholder="What did you love about this place?"
+                  className="w-full h-24 p-4 rounded-xl bg-gray-100 dark:bg-gray-800 border-0 resize-none text-gray-700 dark:text-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-[#00A8CC]"
+                />
+              </div>
+
+              {/* Share Options */}
+              <div className="space-y-4 mb-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-700 dark:text-gray-300">Share with friends</p>
+                    <p className="text-sm text-gray-400">Your friends will see this check-in</p>
+                  </div>
+                  <Switch 
+                    checked={shareWithFriends} 
+                    onCheckedChange={setShareWithFriends}
+                    className="data-[state=checked]:bg-[#00A8CC]"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-700 dark:text-gray-300">Add to public feed</p>
+                    <p className="text-sm text-gray-400">Everyone can see this review</p>
+                  </div>
+                  <Switch 
+                    checked={addToPublicFeed} 
+                    onCheckedChange={setAddToPublicFeed}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex gap-3 safe-bottom">
+              <button
+                onClick={onClose}
+                className="flex-1 h-12 rounded-xl border border-gray-300 dark:border-gray-600 font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="flex-1 h-12 rounded-xl bg-[#00A8CC] text-white font-medium hover:bg-[#00A8CC]/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>Post Check-In</>
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   )
 }
 
 // Venue Detail Sheet Component
 const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
   const [saved, setSaved] = useState(false)
+  const [showCheckIn, setShowCheckIn] = useState(false)
   const [checkedIn, setCheckedIn] = useState(false)
 
   if (!venue) return null
@@ -86,33 +226,25 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
     }
   }
 
-  const handleCheckIn = () => {
+  const handleCheckInClick = () => {
+    if (navigator.vibrate) navigator.vibrate(30)
+    setShowCheckIn(true)
+  }
+
+  const handleCheckInComplete = () => {
     setCheckedIn(true)
-    if (navigator.vibrate) navigator.vibrate([50, 50, 50])
-    toast.success(`Checked in at ${venue.name}!`)
   }
 
   const handleGetDirections = () => {
     if (navigator.vibrate) navigator.vibrate(30)
     const destination = `${venue.lat},${venue.lng}`
-    const label = encodeURIComponent(venue.name)
-    
-    // Check if iOS
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
     
     if (isIOS) {
-      // Open Apple Maps
-      window.open(`maps://maps.apple.com/?daddr=${destination}&q=${label}`, '_blank')
+      window.open(`maps://maps.apple.com/?daddr=${destination}`, '_blank')
     } else {
-      // Open Google Maps
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}&destination_place_id=${label}`, '_blank')
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}`, '_blank')
     }
-  }
-
-  const handleViewOnMap = () => {
-    if (navigator.vibrate) navigator.vibrate(30)
-    const destination = `${venue.lat},${venue.lng}`
-    window.open(`https://www.google.com/maps/search/?api=1&query=${destination}`, '_blank')
   }
 
   const amenities = [
@@ -123,245 +255,237 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
     { icon: PawPrint, label: 'Pet Friendly', available: true },
   ]
 
-  // Generate random opening hours for demo
-  const openingHours = {
-    status: 'Open Now',
-    closes: '5:00 PM',
-    hours: [
-      { day: 'Monday', time: '7:00 AM - 5:00 PM' },
-      { day: 'Tuesday', time: '7:00 AM - 5:00 PM' },
-      { day: 'Wednesday', time: '7:00 AM - 5:00 PM' },
-      { day: 'Thursday', time: '7:00 AM - 5:00 PM' },
-      { day: 'Friday', time: '7:00 AM - 6:00 PM' },
-      { day: 'Saturday', time: '8:00 AM - 6:00 PM' },
-      { day: 'Sunday', time: '8:00 AM - 4:00 PM' },
-    ]
-  }
-
-  const phoneNumber = '02 9834 6321'
+  const phoneNumber = '(02) 9834 6321'
+  const website = 'http://thegrounds.com.au'
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-[2000]"
-          />
-          
-          {/* Sheet */}
-          <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl z-[2001] max-h-[92vh] overflow-hidden"
-          >
-            {/* Drag Handle */}
-            <div className="flex justify-center pt-3 pb-2">
-              <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
-            </div>
-
-            {/* Content */}
-            <div className="overflow-y-auto max-h-[calc(92vh-120px)] pb-28">
-              {/* Hero Image */}
-              <div className="relative h-52">
-                <img 
-                  src={venue.image} 
-                  alt={venue.name}
-                  className="w-full h-full object-cover"
-                />
-                <button
-                  onClick={onClose}
-                  className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg"
-                >
-                  <ChevronDown className="w-6 h-6 text-gray-700" />
-                </button>
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
-                  <span className="text-[#00A8CC] text-sm font-medium">{venue.category}</span>
-                  <h2 className="text-2xl font-bold text-white">{venue.name}</h2>
-                </div>
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+              className="fixed inset-0 bg-black/50 z-[2000]"
+            />
+            
+            {/* Sheet */}
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl z-[2001] max-h-[92vh] overflow-hidden"
+            >
+              {/* Drag Handle */}
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
               </div>
 
-              {/* Rating & Info */}
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
-                    <span className="text-xl font-bold text-gray-900 dark:text-white">{venue.rating}</span>
-                    <span className="text-gray-500">out of 5</span>
-                  </div>
-                  <span className="text-[#00A8CC] font-medium">Top rated</span>
-                </div>
-
-                {/* Quick Info Cards */}
-                <div className="grid grid-cols-3 gap-3 mb-6">
-                  <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
-                    <MapPin className="w-5 h-5 mx-auto mb-1 text-gray-500" />
-                    <p className="text-xs text-gray-500 text-center truncate">Sydney, NSW...</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
-                    <Clock className="w-5 h-5 mx-auto mb-1 text-[#00A8CC]" />
-                    <p className="text-xs text-[#00A8CC] font-medium text-center">{openingHours.status}</p>
-                    <p className="text-[10px] text-gray-400 text-center">Closes at {openingHours.closes}</p>
-                  </div>
-                  <a href={`tel:${phoneNumber}`} className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800 block">
-                    <Phone className="w-5 h-5 mx-auto mb-1 text-gray-500" />
-                    <p className="text-xs text-gray-500 text-center">Call</p>
-                    <p className="text-[10px] text-gray-400 text-center truncate">{phoneNumber}</p>
-                  </a>
-                </div>
-
-                {/* About */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">About</h3>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    {venue.description || `${venue.category} in The Rocks, Sydney. A stunning destination with artisan offerings and a welcoming atmosphere.`}
-                  </p>
-                </div>
-
-                {/* Amenities */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Amenities</h3>
-                  <div className="flex gap-3 overflow-x-auto pb-2">
-                    {amenities.map((amenity, idx) => {
-                      const Icon = amenity.icon
-                      return (
-                        <div 
-                          key={idx}
-                          className={`flex flex-col items-center min-w-[70px] p-3 rounded-xl border ${
-                            amenity.available 
-                              ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700' 
-                              : 'bg-gray-50/50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-800 opacity-40'
-                          }`}
-                        >
-                          <Icon className={`w-6 h-6 mb-1 ${amenity.available ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400'}`} />
-                          <span className="text-xs text-gray-500 text-center">{amenity.label}</span>
-                        </div>
-                      )
-                    })}
+              {/* Content */}
+              <div className="overflow-y-auto max-h-[calc(92vh-120px)] pb-28">
+                {/* Hero Image */}
+                <div className="relative h-52">
+                  <img src={venue.image} alt={venue.name} className="w-full h-full object-cover" />
+                  <button
+                    onClick={onClose}
+                    className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg"
+                  >
+                    <ChevronDown className="w-6 h-6 text-gray-700" />
+                  </button>
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
+                    <span className="text-[#00A8CC] text-sm font-medium">{venue.category}</span>
+                    <h2 className="text-2xl font-bold text-white">{venue.name}</h2>
                   </div>
                 </div>
 
-                {/* Location Section */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Location</h3>
-                  
-                  {/* Full Address */}
-                  <div className="flex items-start gap-3 mb-4">
-                    <MapPin className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
-                    <p className="text-gray-600 dark:text-gray-400">
-                      {venue.address || '7A/2 Huntley St, Alexandria NSW 2015, Australia'}
-                    </p>
+                {/* Rating & Info */}
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
+                      <span className="text-xl font-bold text-gray-900 dark:text-white">{venue.rating}</span>
+                      <span className="text-gray-500">out of 5</span>
+                    </div>
+                    <span className="text-[#00A8CC] font-medium">Top rated</span>
                   </div>
 
-                  {/* Map Preview with Get Directions */}
-                  <div className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-                    {/* Static Map Image */}
-                    <div className="relative h-44 bg-gray-100 dark:bg-gray-800">
+                  {/* Quick Info Cards */}
+                  <div className="grid grid-cols-3 gap-3 mb-6">
+                    <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
+                      <MapPin className="w-5 h-5 mx-auto mb-1 text-gray-500" />
+                      <p className="text-xs text-gray-500 text-center truncate">Sydney, NSW...</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
+                      <Clock className="w-5 h-5 mx-auto mb-1 text-[#00A8CC]" />
+                      <p className="text-xs text-[#00A8CC] font-medium text-center">Open Now</p>
+                      <p className="text-[10px] text-gray-400 text-center">Closes at 5:00 PM</p>
+                    </div>
+                    <a href={`tel:${phoneNumber}`} className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800 block">
+                      <Phone className="w-5 h-5 mx-auto mb-1 text-gray-500" />
+                      <p className="text-xs text-gray-500 text-center">Call</p>
+                      <p className="text-[10px] text-gray-400 text-center truncate">{phoneNumber}</p>
+                    </a>
+                  </div>
+
+                  {/* About Section - Enhanced */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">About</h3>
+                    
+                    {/* Phone */}
+                    <a href={`tel:${phoneNumber}`} className="flex items-center gap-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                        <Phone className="w-5 h-5 text-gray-500" />
+                      </div>
+                      <span className="text-gray-700 dark:text-gray-300">{phoneNumber}</span>
+                    </a>
+                    
+                    {/* Website */}
+                    <a href={website} target="_blank" className="flex items-center gap-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                        <Globe className="w-5 h-5 text-gray-500" />
+                      </div>
+                      <span className="text-gray-700 dark:text-gray-300">{website}</span>
+                    </a>
+                    
+                    {/* Address */}
+                    <div className="flex items-center gap-4 py-3">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-gray-500" />
+                      </div>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {venue.address || '7A/2 Huntley St, Alexandria NSW'}
+                      </span>
+                    </div>
+
+                    {/* Map Preview - Improved */}
+                    <div className="mt-4 relative rounded-2xl overflow-hidden shadow-sm">
+                      <img 
+                        src={`https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-l-restaurant+F4A261(${venue.lng},${venue.lat})/${venue.lng},${venue.lat},15,0/400x200@2x?access_token=pk.eyJ1IjoiZXhhbXBsZXMiLCJhIjoiY2p0MG01MXRqMW45cjQzb2R6b2ptc3J4MSJ9.1rP2pSrNnGaX6E7tEHAVVQ`}
+                        alt="Map"
+                        className="w-full h-44 object-cover bg-gray-200"
+                        onError={(e) => {
+                          // Fallback to OpenStreetMap
+                          e.target.style.display = 'none'
+                          e.target.nextSibling.style.display = 'block'
+                        }}
+                      />
                       <iframe
-                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${venue.lng - 0.008}%2C${venue.lat - 0.005}%2C${venue.lng + 0.008}%2C${venue.lat + 0.005}&layer=mapnik&marker=${venue.lat}%2C${venue.lng}`}
-                        className="w-full h-full border-0"
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${venue.lng - 0.006}%2C${venue.lat - 0.004}%2C${venue.lng + 0.006}%2C${venue.lat + 0.004}&layer=mapnik&marker=${venue.lat}%2C${venue.lng}`}
+                        className="w-full h-44 border-0 hidden"
                         style={{ pointerEvents: 'none' }}
                       />
-                      {/* Overlay to make it non-interactive */}
-                      <div className="absolute inset-0" />
+                      
+                      {/* Map Pin Overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="w-12 h-12 rounded-full bg-[#F4A261] flex items-center justify-center shadow-lg -mt-6">
+                          <UtensilsCrossed className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-[#F4A261] mt-3" />
+                      </div>
+                      
+                      {/* Get Directions Button */}
+                      <button
+                        onClick={handleGetDirections}
+                        className="absolute bottom-3 left-3 flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-md text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all"
+                      >
+                        <Navigation className="w-4 h-4 text-[#00A8CC]" />
+                        <span>Get directions</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </button>
                     </div>
-                    
-                    {/* Get Directions Button */}
-                    <button
-                      onClick={handleGetDirections}
-                      className="absolute top-3 left-3 flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-gray-800 shadow-md text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
-                    >
-                      <span>Get directions</span>
-                      <ExternalLink className="w-4 h-4" />
-                    </button>
-
-                    {/* View on Map Button */}
-                    <button
-                      onClick={handleViewOnMap}
-                      className="absolute bottom-3 left-3 flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm"
-                    >
-                      <Navigation className="w-4 h-4 text-[#00A8CC]" />
-                      <span className="font-medium">View on map</span>
-                    </button>
                   </div>
-                </div>
 
-                {/* Reviews Section */}
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Reviews</h3>
-                    <button className="flex items-center gap-1 text-[#00A8CC] text-sm font-medium">
-                      View all <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="p-6 rounded-xl bg-gray-50 dark:bg-gray-800 text-center">
-                    <p className="text-gray-500">No reviews yet. Be the first to review!</p>
-                  </div>
-                </div>
-
-                {/* Distance Info */}
-                <div className="p-4 rounded-xl bg-[#00A8CC]/10 border border-[#00A8CC]/20">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#00A8CC] flex items-center justify-center">
-                      <Navigation className="w-5 h-5 text-white" />
+                  {/* Amenities */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Amenities</h3>
+                    <div className="flex gap-3 overflow-x-auto pb-2">
+                      {amenities.map((amenity, idx) => {
+                        const Icon = amenity.icon
+                        return (
+                          <div 
+                            key={idx}
+                            className={`flex flex-col items-center min-w-[70px] p-3 rounded-xl border ${
+                              amenity.available 
+                                ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700' 
+                                : 'bg-gray-50/50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-800 opacity-40'
+                            }`}
+                          >
+                            <Icon className={`w-6 h-6 mb-1 ${amenity.available ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400'}`} />
+                            <span className="text-xs text-gray-500 text-center">{amenity.label}</span>
+                          </div>
+                        )
+                      })}
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">{venue.distance} away</p>
-                      <p className="text-sm text-gray-500">from your location</p>
+                  </div>
+
+                  {/* Reviews Section */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">Reviews</h3>
+                      <button className="flex items-center gap-1 text-[#00A8CC] text-sm font-medium">
+                        View all <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="p-6 rounded-xl bg-gray-50 dark:bg-gray-800 text-center">
+                      <p className="text-gray-500">No reviews yet. Be the first to review!</p>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Bottom Action Bar */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 safe-bottom">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleSave}
-                  className={`w-14 h-12 rounded-xl border flex items-center justify-center transition-all ${
-                    saved 
-                      ? 'bg-red-50 border-red-200 text-red-500' 
-                      : 'border-gray-200 dark:border-gray-700 text-gray-500'
-                  }`}
-                >
-                  <Heart className={`w-5 h-5 ${saved ? 'fill-current' : ''}`} />
-                </button>
-                <button
-                  className="w-14 h-12 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500"
-                >
-                  <ListPlus className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={handleShare}
-                  className="w-14 h-12 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500"
-                >
-                  <Share2 className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={handleCheckIn}
-                  disabled={checkedIn}
-                  className={`flex-1 h-12 rounded-xl flex items-center justify-center gap-2 font-medium transition-all ${
-                    checkedIn
-                      ? 'bg-green-500 text-white'
-                      : 'bg-[#00A8CC] text-white hover:bg-[#00A8CC]/90'
-                  }`}
-                >
-                  <Check className="w-5 h-5" />
-                  <span>{checkedIn ? 'Checked In!' : 'Check-In'}</span>
-                </button>
+              {/* Bottom Action Bar */}
+              <div className="absolute bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 safe-bottom">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleSave}
+                    className={`w-14 h-12 rounded-xl border flex items-center justify-center transition-all ${
+                      saved 
+                        ? 'bg-red-50 border-red-200 text-red-500' 
+                        : 'border-gray-200 dark:border-gray-700 text-gray-500'
+                    }`}
+                  >
+                    <Heart className={`w-5 h-5 ${saved ? 'fill-current' : ''}`} />
+                  </button>
+                  <button className="w-14 h-12 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500">
+                    <ListPlus className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    className="w-14 h-12 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500"
+                  >
+                    <Share2 className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={handleCheckInClick}
+                    disabled={checkedIn}
+                    className={`flex-1 h-12 rounded-xl flex items-center justify-center gap-2 font-medium transition-all ${
+                      checkedIn
+                        ? 'bg-green-500 text-white'
+                        : 'bg-[#00A8CC] text-white hover:bg-[#00A8CC]/90'
+                    }`}
+                  >
+                    <Check className="w-5 h-5" />
+                    <span>{checkedIn ? 'Checked In!' : 'Check-In'}</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Check-In Modal */}
+      <CheckInModal 
+        venue={venue}
+        isOpen={showCheckIn}
+        onClose={() => setShowCheckIn(false)}
+        onComplete={handleCheckInComplete}
+      />
+    </>
   )
 }
 
@@ -406,10 +530,8 @@ const ExplorePage = () => {
 
   const visibleVenues = mapBounds 
     ? filteredVenues.filter(v => 
-        v.lat >= mapBounds.south && 
-        v.lat <= mapBounds.north && 
-        v.lng >= mapBounds.west && 
-        v.lng <= mapBounds.east
+        v.lat >= mapBounds.south && v.lat <= mapBounds.north && 
+        v.lng >= mapBounds.west && v.lng <= mapBounds.east
       )
     : filteredVenues
 
@@ -569,22 +691,18 @@ const ExplorePage = () => {
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         className="fixed bottom-0 left-0 right-0 z-[1000]"
       >
-        {/* Pull Tab */}
-        <div className="flex justify-center -mb-1">
+        {/* Pull Handle - Horizontal Line */}
+        <div className="flex justify-center">
           <button
             onClick={toggleNav}
-            className="px-6 py-1 rounded-t-xl bg-white dark:bg-gray-900 border border-b-0 border-gray-200 dark:border-gray-700"
+            className="px-8 py-2 rounded-t-2xl bg-white dark:bg-gray-900 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]"
           >
-            {navHidden ? (
-              <ChevronUp className="w-5 h-5 text-gray-400" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-gray-400" />
-            )}
+            <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
           </button>
         </div>
 
         {/* Chat Button */}
-        <div className="flex justify-center mb-2 bg-gradient-to-t from-white via-white/80 to-transparent dark:from-gray-900 dark:via-gray-900/80 pt-4">
+        <div className="flex justify-center pb-2 bg-white dark:bg-gray-900">
           <motion.button
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
