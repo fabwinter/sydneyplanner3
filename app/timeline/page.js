@@ -478,7 +478,7 @@ const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [photos, setPhotos] = useState([])
   const [isUploading, setIsUploading] = useState(false)
-  const fileInputRef = React.useRef(null)
+  const fileInputRef = useRef(null)
 
   if (!isOpen || !venue) return null
 
