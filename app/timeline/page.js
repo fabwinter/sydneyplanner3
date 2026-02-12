@@ -603,21 +603,85 @@ const TimelinePage = () => {
   const [selectedMapVenue, setSelectedMapVenue] = useState(null)
   const [showCheckInModal, setShowCheckInModal] = useState(false)
   const [checkInVenue, setCheckInVenue] = useState(null)
+  
+  // Real data state
+  const [checkins, setCheckins] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  // Fetch check-ins from API
+  const fetchCheckins = useCallback(async (showRefreshToast = false) => {
+    try {
+      if (showRefreshToast) setIsRefreshing(true)
+      else setIsLoading(true)
+      
+      const response = await fetch('/api/checkins?user_id=anonymous')
+      const data = await response.json()
+      
+      if (data.checkins) {
+        // Transform API data to match UI structure
+        const transformedCheckins = data.checkins.map(checkin => {
+          const createdAt = new Date(checkin.created_at)
+          const hours = createdAt.getHours()
+          const minutes = createdAt.getMinutes()
+          const ampm = hours >= 12 ? 'pm' : 'am'
+          const displayHours = hours % 12 || 12
+          const timeString = `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`
+          
+          return {
+            id: checkin.id,
+            venue: {
+              id: checkin.venue_id,
+              name: checkin.venue_name || 'Unknown Venue',
+              category: checkin.venue_category || 'Other',
+              address: checkin.venue_address || '',
+              lat: checkin.venue_lat || -33.8688,
+              lng: checkin.venue_lng || 151.2093,
+              rating: checkin.rating || 4,
+              distance: '0 km',
+              image: checkin.venue_image || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&h=600&fit=crop',
+              description: `You checked in here on ${createdAt.toLocaleDateString()}`,
+              phone: '',
+              website: '',
+              hours: '',
+              amenities: [],
+            },
+            rating: checkin.rating,
+            comment: checkin.comment || '',
+            time: timeString,
+            date: createdAt,
+            photos: checkin.photos || [],
+          }
+        })
+        
+        setCheckins(transformedCheckins)
+        if (showRefreshToast) toast.success('Timeline refreshed!')
+      }
+    } catch (error) {
+      console.error('Error fetching check-ins:', error)
+      toast.error('Failed to load check-ins')
+    } finally {
+      setIsLoading(false)
+      setIsRefreshing(false)
+    }
+  }, [])
 
   // Only compute dates on client side to avoid hydration mismatch
   useEffect(() => {
     setIsClient(true)
   }, [])
+  
+  // Fetch check-ins on mount
+  useEffect(() => {
+    if (isClient) {
+      fetchCheckins()
+    }
+  }, [isClient, fetchCheckins])
 
-  // Compute check-ins with actual dates only on client
+  // Use real check-ins data
   const realCheckins = useMemo(() => {
-    if (!isClient) return []
-    const now = new Date()
-    return venueData.map(item => ({
-      ...item,
-      date: new Date(now.getTime() - item.daysAgo * 24 * 60 * 60 * 1000)
-    }))
-  }, [isClient])
+    return checkins
+  }, [checkins])
 
   const categories = ['All Categories', 'Cafe', 'Restaurant', 'Beach', 'Nature', 'Museum', 'Attraction']
 
