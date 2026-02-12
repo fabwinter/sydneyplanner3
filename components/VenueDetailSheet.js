@@ -249,6 +249,32 @@ const VenueDetailSheet = ({ venue, isOpen, onClose, lastCheckin = null }) => {
                 </div>
 
                 <div className="p-4">
+                  {/* Last Check-in Info */}
+                  {lastCheckin && (
+                    <div className="mb-5 p-4 rounded-2xl bg-[#00A8CC]/10 border border-[#00A8CC]/20">
+                      <h3 className="text-sm font-semibold text-[#00A8CC] mb-3">Your Last Visit</h3>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-gray-500" />
+                          <span className="text-gray-700 dark:text-gray-300 font-medium">
+                            {formatCheckinDate(lastCheckin.date)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-4 h-4 ${star <= lastCheckin.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      {lastCheckin.comment && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400 italic">"{lastCheckin.comment}"</p>
+                      )}
+                    </div>
+                  )}
+
                   {/* Rating */}
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-2">
