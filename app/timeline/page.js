@@ -1,16 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Search, Star, Clock, Filter, Calendar, ChevronDown, ChevronLeft, ChevronRight,
   MessageCircle, User, Map, Heart, Coffee, Umbrella, Building2,
-  TreePine, Landmark, Sparkles, UtensilsCrossed, X, ArrowRight, List, Loader2, Navigation
+  TreePine, Landmark, Sparkles, UtensilsCrossed, X, ArrowRight, List, Loader2, Navigation,
+  MapPin, Phone, Globe, Share2, Bookmark, Camera, Image as ImageIcon
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
+import { toast } from 'sonner'
 
 // Dynamic import for map
 const MapComponent = dynamic(() => import('@/components/MapComponent'), {
@@ -41,8 +43,8 @@ const categoryColors = {
   'Attraction': '#EC4899',
 }
 
-// Real check-in data with detailed information
-const realCheckins = [
+// Static venue data (dates will be computed client-side)
+const venueData = [
   {
     id: '1',
     venue: {
@@ -55,15 +57,17 @@ const realCheckins = [
       rating: 4.7,
       distance: '8.5 km',
       image: 'https://images.unsplash.com/photo-1527731149372-fae504a1185f?w=800&h=600&fit=crop',
-      description: 'Sydney\'s most famous beach with golden sand and excellent surf conditions.',
+      description: 'Sydney\'s most famous beach with golden sand and excellent surf conditions. Perfect for surfing, swimming, and people watching.',
+      phone: '+61 2 9365 5333',
+      website: 'https://www.waverley.nsw.gov.au/recreation/beaches/bondi_beach',
+      hours: 'Open 24 hours',
+      amenities: ['Parking', 'Toilets', 'Showers', 'Lifeguards', 'Wheelchair Access'],
     },
     rating: 4,
     comment: 'Great beach.',
     time: '1:24 pm',
-    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-    photos: [
-      'https://images.unsplash.com/photo-1527731149372-fae504a1185f?w=400&h=400&fit=crop',
-    ],
+    daysAgo: 1,
+    photos: ['https://images.unsplash.com/photo-1527731149372-fae504a1185f?w=400&h=400&fit=crop'],
   },
   {
     id: '2',
@@ -77,15 +81,17 @@ const realCheckins = [
       rating: 4.6,
       distance: '3.1 km',
       image: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&h=600&fit=crop',
-      description: 'Specialty coffee roasters with a great working atmosphere and pastries.',
+      description: 'Specialty coffee roasters with a great working atmosphere. Known for their single origin coffees and pastries.',
+      phone: '+61 2 9211 0665',
+      website: 'https://singleo.com.au',
+      hours: 'Mon-Fri 7am-4pm, Sat-Sun 8am-4pm',
+      amenities: ['WiFi', 'Power Outlets', 'Takeaway', 'Dine-in'],
     },
     rating: 4,
     comment: 'Great Coffee',
     time: '1:10 pm',
-    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-    photos: [
-      'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&h=400&fit=crop',
-    ],
+    daysAgo: 1,
+    photos: ['https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&h=400&fit=crop'],
   },
   {
     id: '3',
@@ -93,21 +99,23 @@ const realCheckins = [
       id: 'v3',
       name: 'White Rabbit Gallery',
       category: 'Museum',
-      address: '30 Balfour Street',
+      address: '30 Balfour Street, Chippendale',
       lat: -33.8877,
       lng: 151.1986,
       rating: 4.7,
       distance: '2.8 km',
       image: 'https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=800&h=600&fit=crop',
-      description: 'Contemporary Chinese art museum with free entry and rotating exhibitions.',
+      description: 'Contemporary Chinese art museum with free entry and rotating exhibitions. Four floors of thought-provoking art.',
+      phone: '+61 2 8399 2867',
+      website: 'https://www.whiterabbitcollection.org',
+      hours: 'Wed-Sun 10am-5pm',
+      amenities: ['Free Entry', 'Gift Shop', 'Wheelchair Access', 'Tea House'],
     },
     rating: 4,
     comment: '',
     time: '8:05 pm',
-    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-    photos: [
-      'https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=400&h=400&fit=crop',
-    ],
+    daysAgo: 3,
+    photos: ['https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=400&h=400&fit=crop'],
   },
   {
     id: '4',
@@ -121,15 +129,17 @@ const realCheckins = [
       rating: 4.5,
       distance: '2.1 km',
       image: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&h=600&fit=crop',
-      description: 'A stunning cafe and garden space with artisan coffee and fresh pastries.',
+      description: 'A stunning cafe and garden space with artisan coffee and fresh pastries. Home to Kevin the pig!',
+      phone: '+61 2 9699 2225',
+      website: 'https://thegrounds.com.au',
+      hours: 'Mon-Fri 7am-4pm, Sat-Sun 7:30am-4pm',
+      amenities: ['Garden', 'Bakery', 'Markets', 'Events', 'Parking'],
     },
     rating: 5,
     comment: 'Amazing brunch spot!',
     time: '11:30 am',
-    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    photos: [
-      'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=400&fit=crop',
-    ],
+    daysAgo: 5,
+    photos: ['https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=400&fit=crop'],
   },
   {
     id: '5',
@@ -143,15 +153,17 @@ const realCheckins = [
       rating: 4.8,
       distance: '4.8 km',
       image: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=800&h=600&fit=crop',
-      description: 'Beautiful 30-hectare garden in the heart of the city with stunning harbour views.',
+      description: 'Beautiful 30-hectare garden in the heart of the city with stunning harbour views. Perfect for picnics and walks.',
+      phone: '+61 2 9231 8111',
+      website: 'https://www.rbgsyd.nsw.gov.au',
+      hours: 'Open daily 7am-sunset',
+      amenities: ['Free Entry', 'Guided Tours', 'Cafe', 'Toilets', 'Wheelchair Access'],
     },
     rating: 5,
     comment: 'Beautiful gardens!',
     time: '3:00 pm',
-    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    photos: [
-      'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=400&h=400&fit=crop',
-    ],
+    daysAgo: 5,
+    photos: ['https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=400&h=400&fit=crop'],
   },
   {
     id: '6',
@@ -165,15 +177,17 @@ const realCheckins = [
       rating: 4.6,
       distance: '9.2 km',
       image: 'https://images.unsplash.com/photo-1553039923-b7c666a88d9e?w=800&h=600&fit=crop',
-      description: 'Family-friendly beach with calm waters and ocean pool.',
+      description: 'Family-friendly beach with calm waters and ocean pool. Great cafes and restaurants nearby.',
+      phone: '+61 2 9315 8000',
+      website: 'https://www.randwick.nsw.gov.au/facilities-and-recreation/beaches/coogee-beach',
+      hours: 'Open 24 hours',
+      amenities: ['Ocean Pool', 'Parking', 'Toilets', 'Showers', 'Playground'],
     },
     rating: 4,
     comment: 'Perfect for families',
     time: '10:00 am',
-    date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    photos: [
-      'https://images.unsplash.com/photo-1553039923-b7c666a88d9e?w=400&h=400&fit=crop',
-    ],
+    daysAgo: 7,
+    photos: ['https://images.unsplash.com/photo-1553039923-b7c666a88d9e?w=400&h=400&fit=crop'],
   },
   {
     id: '7',
@@ -187,20 +201,23 @@ const realCheckins = [
       rating: 4.5,
       distance: '7.8 km',
       image: 'https://images.unsplash.com/photo-1534567153574-2b12153a87f0?w=800&h=600&fit=crop',
-      description: 'World-class zoo with stunning harbour views and diverse animal exhibits.',
+      description: 'World-class zoo with stunning harbour views and diverse animal exhibits. Take the ferry for the best experience.',
+      phone: '+61 2 9969 2777',
+      website: 'https://taronga.org.au',
+      hours: 'Open daily 9:30am-5pm',
+      amenities: ['Ferry Access', 'Sky Safari', 'Cafe', 'Gift Shop', 'Wheelchair Access'],
     },
     rating: 5,
     comment: 'Great views of the harbour!',
     time: '2:30 pm',
-    date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-    photos: [
-      'https://images.unsplash.com/photo-1534567153574-2b12153a87f0?w=400&h=400&fit=crop',
-    ],
+    daysAgo: 10,
+    photos: ['https://images.unsplash.com/photo-1534567153574-2b12153a87f0?w=400&h=400&fit=crop'],
   },
 ]
 
-// Format date
+// Format date helper - only used after client mount
 const formatDate = (date) => {
+  if (!date) return ''
   const today = new Date()
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
@@ -219,10 +236,17 @@ const formatShortDate = (date) => {
   return `${date.getDate()} ${months[date.getMonth()]}`
 }
 
+const formatFullDate = (date) => {
+  if (!date) return ''
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+  return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`
+}
+
 // Group checkins by date
 const groupByDate = (checkins) => {
   const groups = {}
   checkins.forEach(checkin => {
+    if (!checkin.date) return
     const dateKey = checkin.date.toDateString()
     if (!groups[dateKey]) {
       groups[dateKey] = { date: checkin.date, checkins: [] }
@@ -284,7 +308,6 @@ const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRange
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/30 z-50 flex items-start justify-center pt-32">
         <motion.div initial={{ opacity: 0, scale: 0.95, y: -20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: -20 }} onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-4 mx-4 w-full max-w-sm">
-          {/* Date Range Display - TEAL */}
           <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
             <div className={`flex-1 text-center p-2 rounded-lg ${selecting === 'start' ? 'bg-[#00A8CC]/20 border border-[#00A8CC]' : ''}`}>
               <p className="text-xs text-gray-500 mb-1">Start Date</p>
@@ -297,7 +320,6 @@ const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRange
             </div>
           </div>
           
-          {/* Month Navigation */}
           <div className="flex items-center justify-between mb-4">
             <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700">
               <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
@@ -308,12 +330,10 @@ const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRange
             </button>
           </div>
           
-          {/* Day Headers */}
           <div className="grid grid-cols-7 gap-1 mb-2">
             {days.map(day => <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">{day}</div>)}
           </div>
           
-          {/* Calendar Grid - TEAL colors */}
           <div className="grid grid-cols-7 gap-1">
             {getDaysInMonth(currentMonth).map((date, index) => (
               <button key={index} onClick={() => handleDateClick(date)} disabled={!date} className={`
@@ -329,7 +349,6 @@ const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRange
             ))}
           </div>
           
-          {/* Actions */}
           <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
             <button onClick={() => { setTempStartDate(null); setTempEndDate(null); onDateRangeSelect(null, null); onClose(); }} className="flex-1 h-10 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium">Clear</button>
             <button onClick={() => { onDateRangeSelect(tempStartDate, tempEndDate); onClose(); }} className="flex-1 h-10 rounded-xl bg-[#00A8CC] text-white font-medium">Apply</button>
@@ -340,9 +359,9 @@ const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRange
   )
 }
 
-// Check-in Detail Sheet with Toggle
+// Enhanced Check-in Detail Sheet with Full Venue Info
 const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain }) => {
-  const [activeTab, setActiveTab] = useState('checkin') // 'checkin' or 'venue'
+  const [activeTab, setActiveTab] = useState('checkin')
   const [saved, setSaved] = useState(false)
   
   if (!checkin || !isOpen) return null
@@ -353,24 +372,30 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain }) => {
   const handleSave = () => {
     setSaved(!saved)
     if (navigator.vibrate) navigator.vibrate(50)
-    // Show toast notification
-    if (typeof window !== 'undefined') {
-      import('sonner').then(({ toast }) => {
-        toast.success(saved ? 'Removed from saved' : 'Saved to favorites!')
-      })
-    }
+    toast.success(saved ? 'Removed from saved' : 'Saved to favorites!')
   }
 
   const handleCheckInAgain = () => {
     if (navigator.vibrate) navigator.vibrate(50)
-    if (typeof window !== 'undefined') {
-      import('sonner').then(({ toast }) => {
-        toast.success('Opening check-in...')
+    toast.success('Opening check-in...')
+    if (onCheckInAgain) onCheckInAgain(checkin.venue)
+  }
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: checkin.venue.name,
+        text: `Check out ${checkin.venue.name} in Sydney!`,
+        url: window.location.href,
       })
+    } else {
+      toast.success('Link copied!')
     }
-    if (onCheckInAgain) {
-      onCheckInAgain(checkin.venue)
-    }
+  }
+
+  const handleDirections = () => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${checkin.venue.lat},${checkin.venue.lng}`
+    window.open(url, '_blank')
   }
 
   return (
@@ -388,8 +413,10 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain }) => {
                 <button onClick={onClose} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
                   <ChevronLeft className="w-6 h-6 text-gray-700" />
                 </button>
-                <div className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-[#00A8CC] text-white text-sm font-medium flex items-center gap-1.5">
-                  <Clock className="w-4 h-4" /><span>Checked in</span>
+                <div className="absolute top-4 right-4 flex gap-2">
+                  <button onClick={handleShare} className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                    <Share2 className="w-5 h-5 text-gray-700" />
+                  </button>
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
                   <div className="flex items-center gap-2 mb-1">
@@ -397,6 +424,10 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain }) => {
                       <CategoryIcon className="w-4 h-4 text-white" />
                     </div>
                     <span className="text-white/80 text-sm font-medium">{checkin.venue.category}</span>
+                    <div className="flex items-center gap-1 ml-auto">
+                      <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                      <span className="text-white font-semibold">{checkin.venue.rating}</span>
+                    </div>
                   </div>
                   <h2 className="text-2xl font-bold text-white">{checkin.venue.name}</h2>
                 </div>
@@ -424,7 +455,7 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain }) => {
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-gray-500" />
-                            <span className="text-gray-700 dark:text-gray-300 font-medium">{formatDate(checkin.date)}</span>
+                            <span className="text-gray-700 dark:text-gray-300 font-medium">{checkin.date ? formatFullDate(checkin.date) : ''}</span>
                           </div>
                           <div className="flex items-center gap-1 text-gray-500">
                             <Clock className="w-4 h-4" />
@@ -462,27 +493,88 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain }) => {
                     </motion.div>
                   ) : (
                     <motion.div key="venue" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                      {/* Venue Details */}
+                      {/* About */}
                       <div className="mb-4">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">About</h3>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">About</h3>
                         <p className="text-gray-600 dark:text-gray-400">{checkin.venue.description}</p>
                       </div>
                       
-                      <div className="mb-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
-                          <span className="text-lg font-semibold text-gray-900 dark:text-white">{checkin.venue.rating}</span>
-                          <span className="text-gray-500">• {checkin.venue.distance}</span>
+                      {/* Quick Info */}
+                      <div className="mb-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                            <MapPin className="w-5 h-5 text-gray-500" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-500">Address</p>
+                            <p className="text-gray-900 dark:text-white font-medium">{checkin.venue.address}</p>
+                          </div>
                         </div>
-                        <p className="text-gray-600 dark:text-gray-400">{checkin.venue.address}</p>
+                        
+                        {checkin.venue.hours && (
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                              <Clock className="w-5 h-5 text-gray-500" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-500">Hours</p>
+                              <p className="text-gray-900 dark:text-white font-medium">{checkin.venue.hours}</p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {checkin.venue.phone && (
+                          <a href={`tel:${checkin.venue.phone}`} className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                              <Phone className="w-5 h-5 text-gray-500" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-500">Phone</p>
+                              <p className="text-[#00A8CC] font-medium">{checkin.venue.phone}</p>
+                            </div>
+                          </a>
+                        )}
+                        
+                        {checkin.venue.website && (
+                          <a href={checkin.venue.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                              <Globe className="w-5 h-5 text-gray-500" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-500">Website</p>
+                              <p className="text-[#00A8CC] font-medium truncate">{checkin.venue.website.replace('https://', '')}</p>
+                            </div>
+                          </a>
+                        )}
                       </div>
                       
+                      {/* Amenities */}
+                      {checkin.venue.amenities && checkin.venue.amenities.length > 0 && (
+                        <div className="mb-4">
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Amenities</h3>
+                          <div className="flex flex-wrap gap-2">
+                            {checkin.venue.amenities.map((amenity, idx) => (
+                              <span key={idx} className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300">
+                                {amenity}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
                       {/* Mini Map */}
-                      <div className="mb-4 rounded-2xl overflow-hidden h-40">
-                        <iframe
-                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${checkin.venue.lng - 0.01}%2C${checkin.venue.lat - 0.006}%2C${checkin.venue.lng + 0.01}%2C${checkin.venue.lat + 0.006}&layer=mapnik&marker=${checkin.venue.lat}%2C${checkin.venue.lng}`}
-                          className="w-full h-full border-0"
-                        />
+                      <div className="mb-4">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Location</h3>
+                        <div className="rounded-2xl overflow-hidden h-40 relative">
+                          <iframe
+                            src={`https://www.openstreetmap.org/export/embed.html?bbox=${checkin.venue.lng - 0.01}%2C${checkin.venue.lat - 0.006}%2C${checkin.venue.lng + 0.01}%2C${checkin.venue.lat + 0.006}&layer=mapnik&marker=${checkin.venue.lat}%2C${checkin.venue.lng}`}
+                            className="w-full h-full border-0"
+                          />
+                          <button onClick={handleDirections} className="absolute bottom-3 right-3 px-4 py-2 rounded-lg bg-[#00A8CC] text-white text-sm font-medium flex items-center gap-2 shadow-lg">
+                            <Navigation className="w-4 h-4" />
+                            Directions
+                          </button>
+                        </div>
                       </div>
                     </motion.div>
                   )}
@@ -493,9 +585,7 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain }) => {
                   <button 
                     onClick={handleSave}
                     className={`flex-1 h-12 rounded-xl border font-medium flex items-center justify-center gap-2 transition-all ${
-                      saved 
-                        ? 'bg-red-50 border-red-200 text-red-500' 
-                        : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                      saved ? 'bg-red-50 border-red-200 text-red-500' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
                     }`}
                   >
                     <Heart className={`w-5 h-5 ${saved ? 'fill-current' : ''}`} />
@@ -519,8 +609,10 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain }) => {
 
 // Check-in Card Component
 const CheckinCard = ({ checkin, onClick }) => {
-  const CategoryIcon = categoryIcons[checkin.venue.category] || Sparkles
-  const categoryColor = categoryColors[checkin.venue.category] || '#6B7280'
+  const CategoryIcon = categoryIcons[checkin.venue?.category] || Sparkles
+  const categoryColor = categoryColors[checkin.venue?.category] || '#6B7280'
+
+  if (!checkin.venue) return null
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} onClick={onClick} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden mb-4 cursor-pointer hover:shadow-md transition-shadow">
@@ -551,7 +643,7 @@ const CheckinCard = ({ checkin, onClick }) => {
   )
 }
 
-// Simple Check-in Modal for Timeline
+// Simple Check-in Modal
 const CheckInModalSimple = ({ venue, isOpen, onClose }) => {
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
@@ -562,14 +654,8 @@ const CheckInModalSimple = ({ venue, isOpen, onClose }) => {
   const handleSubmit = async () => {
     setIsSubmitting(true)
     if (navigator.vibrate) navigator.vibrate(50)
-    
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 500))
-    
-    import('sonner').then(({ toast }) => {
-      toast.success(`Checked in at ${venue.name}!`)
-    })
-    
+    toast.success(`Checked in at ${venue.name}!`)
     setIsSubmitting(false)
     onClose()
   }
@@ -579,11 +665,9 @@ const CheckInModalSimple = ({ venue, isOpen, onClose }) => {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/50 z-[3000] flex items-end justify-center">
         <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-gray-900 rounded-t-3xl w-full max-w-lg p-6 pb-8">
           <div className="flex justify-center mb-4"><div className="w-10 h-1 rounded-full bg-gray-300" /></div>
-          
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Check in at {venue.name}</h2>
           <p className="text-sm text-gray-500 mb-6">{venue.category} • {venue.address}</p>
           
-          {/* Rating */}
           <div className="mb-4">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Your Rating</label>
             <div className="flex gap-2">
@@ -595,27 +679,14 @@ const CheckInModalSimple = ({ venue, isOpen, onClose }) => {
             </div>
           </div>
           
-          {/* Comment */}
           <div className="mb-6">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Comment (optional)</label>
-            <textarea 
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Share your experience..."
-              className="w-full h-24 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-[#00A8CC]"
-            />
+            <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Share your experience..." className="w-full h-24 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-[#00A8CC]" />
           </div>
           
-          {/* Actions */}
           <div className="flex gap-3">
-            <button onClick={onClose} className="flex-1 h-12 rounded-xl border border-gray-200 dark:border-gray-700 font-medium text-gray-700 dark:text-gray-300">
-              Cancel
-            </button>
-            <button 
-              onClick={handleSubmit}
-              disabled={rating === 0 || isSubmitting}
-              className="flex-1 h-12 rounded-xl bg-[#00A8CC] text-white font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-            >
+            <button onClick={onClose} className="flex-1 h-12 rounded-xl border border-gray-200 dark:border-gray-700 font-medium text-gray-700 dark:text-gray-300">Cancel</button>
+            <button onClick={handleSubmit} disabled={rating === 0 || isSubmitting} className="flex-1 h-12 rounded-xl bg-[#00A8CC] text-white font-medium disabled:opacity-50 flex items-center justify-center gap-2">
               {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Check In'}
             </button>
           </div>
@@ -655,7 +726,8 @@ const BottomNav = ({ active = 'timeline' }) => {
 
 const TimelinePage = () => {
   const router = useRouter()
-  const [viewMode, setViewMode] = useState('list') // 'list' or 'map'
+  const [isClient, setIsClient] = useState(false)
+  const [viewMode, setViewMode] = useState('list')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All Categories')
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
@@ -668,27 +740,44 @@ const TimelinePage = () => {
   const [showCheckInModal, setShowCheckInModal] = useState(false)
   const [checkInVenue, setCheckInVenue] = useState(null)
 
+  // Only compute dates on client side to avoid hydration mismatch
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  // Compute check-ins with actual dates only on client
+  const realCheckins = useMemo(() => {
+    if (!isClient) return []
+    const now = new Date()
+    return venueData.map(item => ({
+      ...item,
+      date: new Date(now.getTime() - item.daysAgo * 24 * 60 * 60 * 1000)
+    }))
+  }, [isClient])
+
   const categories = ['All Categories', 'Cafe', 'Restaurant', 'Beach', 'Nature', 'Museum', 'Attraction']
 
   // Filter checkins
-  const filteredCheckins = realCheckins.filter(checkin => {
-    const matchesSearch = searchQuery === '' || 
-      checkin.venue.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      checkin.venue.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      checkin.venue.address.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = selectedCategory === 'All Categories' || checkin.venue.category === selectedCategory
-    let matchesDateRange = true
-    if (startDate && endDate) {
-      matchesDateRange = checkin.date >= startDate && checkin.date <= endDate
-    } else if (startDate) {
-      matchesDateRange = checkin.date >= startDate
-    } else if (endDate) {
-      matchesDateRange = checkin.date <= endDate
-    }
-    return matchesSearch && matchesCategory && matchesDateRange
-  })
+  const filteredCheckins = useMemo(() => {
+    return realCheckins.filter(checkin => {
+      const matchesSearch = searchQuery === '' || 
+        checkin.venue.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        checkin.venue.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        checkin.venue.address.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesCategory = selectedCategory === 'All Categories' || checkin.venue.category === selectedCategory
+      let matchesDateRange = true
+      if (startDate && endDate) {
+        matchesDateRange = checkin.date >= startDate && checkin.date <= endDate
+      } else if (startDate) {
+        matchesDateRange = checkin.date >= startDate
+      } else if (endDate) {
+        matchesDateRange = checkin.date <= endDate
+      }
+      return matchesSearch && matchesCategory && matchesDateRange
+    })
+  }, [realCheckins, searchQuery, selectedCategory, startDate, endDate])
 
-  const groupedCheckins = groupByDate(filteredCheckins)
+  const groupedCheckins = useMemo(() => groupByDate(filteredCheckins), [filteredCheckins])
   const totalPlaces = filteredCheckins.length
   const mapVenues = filteredCheckins.map(c => c.venue)
 
@@ -700,27 +789,22 @@ const TimelinePage = () => {
 
   const handleMapVenueSelect = (venue) => {
     setSelectedMapVenue(venue)
-    // Find the checkin for this venue
     const checkin = filteredCheckins.find(c => c.venue.id === venue.id)
-    if (checkin) {
-      setSelectedCheckin(checkin)
-    }
+    if (checkin) setSelectedCheckin(checkin)
   }
 
   const handleMapVenueDeselect = () => {
     setSelectedMapVenue(null)
   }
 
+  const handleMapVenueClick = () => {
+    if (selectedCheckin) setShowCheckinDetail(true)
+  }
+
   const handleCheckInAgain = (venue) => {
     setCheckInVenue(venue)
     setShowCheckinDetail(false)
     setShowCheckInModal(true)
-  }
-
-  const handleMapVenueClick = () => {
-    if (selectedCheckin) {
-      setShowCheckinDetail(true)
-    }
   }
 
   const hasDateFilter = startDate || endDate
@@ -731,11 +815,19 @@ const TimelinePage = () => {
     return 'Date'
   }
 
+  // Show loading state during hydration
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#00A8CC]" />
+      </div>
+    )
+  }
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
       <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-40 px-4 pt-4 pb-2">
-        {/* Title Row */}
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Timeline</h1>
@@ -746,13 +838,11 @@ const TimelinePage = () => {
           </button>
         </div>
 
-        {/* Search Bar */}
         <div className="relative mb-3">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search timeline..." className="w-full h-12 rounded-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 pl-12 pr-4 text-base placeholder:text-gray-400" />
         </div>
 
-        {/* Filters */}
         <div className="flex gap-2">
           <div className="relative flex-1">
             <button onClick={() => setShowCategoryDropdown(!showCategoryDropdown)} className="w-full h-11 px-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-between text-gray-700 dark:text-gray-300">
@@ -818,15 +908,8 @@ const TimelinePage = () => {
           </motion.div>
         ) : (
           <motion.div key="map" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-[calc(100vh-240px)]">
-            <MapComponent 
-              venues={mapVenues} 
-              selectedVenue={selectedMapVenue} 
-              onVenueSelect={handleMapVenueSelect}
-              onVenueDeselect={handleMapVenueDeselect}
-              fitBounds={true}
-            />
+            <MapComponent venues={mapVenues} selectedVenue={selectedMapVenue} onVenueSelect={handleMapVenueSelect} onVenueDeselect={handleMapVenueDeselect} fitBounds={true} />
             
-            {/* Selected Venue Card on Map */}
             <AnimatePresence>
               {selectedMapVenue && !showCheckinDetail && (
                 <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }} className="fixed left-4 right-4 bottom-24 z-[1002] max-w-lg mx-auto">
@@ -855,16 +938,8 @@ const TimelinePage = () => {
       <DateRangePickerModal isOpen={showDatePicker} onClose={() => setShowDatePicker(false)} startDate={startDate} endDate={endDate} onDateRangeSelect={(s, e) => { setStartDate(s); setEndDate(e); }} />
       <CheckinDetailSheet checkin={selectedCheckin} isOpen={showCheckinDetail} onClose={() => setShowCheckinDetail(false)} onCheckInAgain={handleCheckInAgain} />
       
-      {/* Check-in Modal */}
       {showCheckInModal && checkInVenue && (
-        <CheckInModalSimple
-          venue={checkInVenue}
-          isOpen={showCheckInModal}
-          onClose={() => {
-            setShowCheckInModal(false)
-            setCheckInVenue(null)
-          }}
-        />
+        <CheckInModalSimple venue={checkInVenue} isOpen={showCheckInModal} onClose={() => { setShowCheckInModal(false); setCheckInVenue(null); }} />
       )}
     </motion.div>
   )
