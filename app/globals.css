@@ -164,3 +164,20 @@
   user-select: none;
   -webkit-user-select: none;
 }
+
+/* Ken Burns Effect for Hero Image */
+@keyframes ken-burns {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  50% {
+    transform: scale(1.1) translate(-2%, -1%);
+  }
+  100% {
+    transform: scale(1) translate(0, 0);
+  }
+}
+
+.animate-ken-burns {
+  animation: ken-burns 20s ease-in-out infinite;
+}
