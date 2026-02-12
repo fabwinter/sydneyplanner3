@@ -1,10 +1,11 @@
 import './globals.css'
 import { Toaster } from 'sonner'
 import { VenueProvider } from '@/lib/VenueContext'
+import { AuthProvider } from '@/lib/AuthContext'
 
 export const metadata = {
   title: 'Sydney Planner - Discover, Check-in, Relive Sydney',
-  description: 'Your AI-powered guide to discovering the best venues, beaches, cafes, and hidden gems in Sydney. Check-in, earn badges, and share with friends.',
+  description: 'Your AI-powered guide to discovering the best venues, beaches, cafes, and hidden gems in Sydney.',
   keywords: 'Sydney, travel, venues, cafes, beaches, check-in, discover',
   manifest: '/manifest.json',
 }
@@ -26,10 +27,12 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <VenueProvider>
-          {children}
-          <Toaster position="top-center" richColors />
-        </VenueProvider>
+        <AuthProvider>
+          <VenueProvider>
+            {children}
+            <Toaster position="top-center" richColors />
+          </VenueProvider>
+        </AuthProvider>
       </body>
     </html>
   )
