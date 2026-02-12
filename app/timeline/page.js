@@ -3,14 +3,15 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Search, Star, Clock, Filter, Calendar, ChevronDown,
+  Search, Star, Clock, Filter, Calendar, ChevronDown, ChevronLeft, ChevronRight,
   MessageCircle, User, Map, Heart, Coffee, Umbrella, Building2,
-  TreePine, Landmark, Sparkles, UtensilsCrossed
+  TreePine, Landmark, Sparkles, UtensilsCrossed, X
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import VenueDetailSheet from '@/components/VenueDetailSheet'
+import { useVenues } from '@/lib/VenueContext'
 
 // Category icon mapping
 const categoryIcons = {
@@ -31,7 +32,7 @@ const categoryColors = {
   'Attraction': '#EC4899',
 }
 
-// Sample check-in data (will be replaced with real data from database)
+// Sample check-in data (simulating real data from database)
 const sampleCheckins = [
   {
     id: '1',
@@ -49,8 +50,8 @@ const sampleCheckins = [
     rating: 4,
     comment: 'Great beach.',
     time: '1:24 pm',
-    date: new Date('2025-02-09'),
-    photo: 'https://images.unsplash.com/photo-1527731149372-fae504a1185f?w=100&h=100&fit=crop',
+    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // Yesterday
+    photo: 'https://images.unsplash.com/photo-1527731149372-fae504a1185f?w=200&h=200&fit=crop',
   },
   {
     id: '2',
@@ -68,8 +69,8 @@ const sampleCheckins = [
     rating: 4,
     comment: 'Great Coffee',
     time: '1:10 pm',
-    date: new Date('2025-02-09'),
-    photo: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=100&h=100&fit=crop',
+    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // Yesterday
+    photo: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=200&h=200&fit=crop',
   },
   {
     id: '3',
@@ -85,10 +86,10 @@ const sampleCheckins = [
       image: 'https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=400&h=300&fit=crop',
     },
     rating: 4,
-    comment: '',
+    comment: 'Amazing contemporary art',
     time: '8:05 pm',
-    date: new Date('2025-02-08'),
-    photo: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=100&h=100&fit=crop',
+    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+    photo: 'https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=200&h=200&fit=crop',
   },
   {
     id: '4',
@@ -106,8 +107,8 @@ const sampleCheckins = [
     rating: 5,
     comment: 'Amazing brunch spot!',
     time: '11:30 am',
-    date: new Date('2025-02-04'),
-    photo: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=100&h=100&fit=crop',
+    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+    photo: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=200&h=200&fit=crop',
   },
   {
     id: '5',
@@ -125,13 +126,62 @@ const sampleCheckins = [
     rating: 5,
     comment: 'Beautiful gardens!',
     time: '3:00 pm',
-    date: new Date('2025-02-04'),
-    photo: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=100&h=100&fit=crop',
+    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+    photo: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=200&h=200&fit=crop',
+  },
+  {
+    id: '6',
+    venue: {
+      id: 'v6',
+      name: 'Coogee Beach',
+      category: 'Beach',
+      address: 'Coogee Bay Rd, Coogee',
+      lat: -33.9200,
+      lng: 151.2576,
+      rating: 4.6,
+      distance: '9.2 km',
+      image: 'https://images.unsplash.com/photo-1553039923-b7c666a88d9e?w=400&h=300&fit=crop',
+    },
+    rating: 4,
+    comment: 'Perfect for families',
+    time: '10:00 am',
+    date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+    photo: 'https://images.unsplash.com/photo-1553039923-b7c666a88d9e?w=200&h=200&fit=crop',
+  },
+  {
+    id: '7',
+    venue: {
+      id: 'v7',
+      name: 'Taronga Zoo',
+      category: 'Attraction',
+      address: 'Bradleys Head Rd, Mosman',
+      lat: -33.8436,
+      lng: 151.2411,
+      rating: 4.5,
+      distance: '7.8 km',
+      image: 'https://images.unsplash.com/photo-1534567153574-2b12153a87f0?w=400&h=300&fit=crop',
+    },
+    rating: 5,
+    comment: 'Great views of the harbour!',
+    time: '2:30 pm',
+    date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+    photo: 'https://images.unsplash.com/photo-1534567153574-2b12153a87f0?w=200&h=200&fit=crop',
   },
 ]
 
-// Format date to "Mon, 9 Feb" format
+// Format date to "Mon, 9 Feb" format or "Yesterday" / "Today"
 const formatDate = (date) => {
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  
+  if (date.toDateString() === today.toDateString()) {
+    return 'Today'
+  }
+  if (date.toDateString() === yesterday.toDateString()) {
+    return 'Yesterday'
+  }
+  
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]}`
@@ -153,7 +203,140 @@ const groupByDate = (checkins) => {
   return Object.values(groups).sort((a, b) => b.date - a.date)
 }
 
-// Check-in Card Component
+// Date Picker Modal Component
+const DatePickerModal = ({ isOpen, onClose, selectedDate, onDateSelect }) => {
+  const [currentMonth, setCurrentMonth] = useState(new Date())
+  
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                  'July', 'August', 'September', 'October', 'November', 'December']
+  const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+  
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear()
+    const month = date.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const daysInMonth = lastDay.getDate()
+    const startingDay = firstDay.getDay()
+    
+    const days = []
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < startingDay; i++) {
+      days.push(null)
+    }
+    // Add the days of the month
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(new Date(year, month, i))
+    }
+    return days
+  }
+  
+  const prevMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))
+  }
+  
+  const nextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))
+  }
+  
+  const isSelected = (date) => {
+    if (!date || !selectedDate) return false
+    return date.toDateString() === selectedDate.toDateString()
+  }
+  
+  const isToday = (date) => {
+    if (!date) return false
+    return date.toDateString() === new Date().toDateString()
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 bg-black/30 z-50 flex items-start justify-center pt-40"
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: -20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: -20 }}
+          onClick={(e) => e.stopPropagation()}
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-4 mx-4 w-full max-w-sm"
+        >
+          {/* Month Navigation */}
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={prevMonth}
+              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+            </button>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {months[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+            </h3>
+            <button
+              onClick={nextMonth}
+              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+            </button>
+          </div>
+          
+          {/* Day Headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {days.map(day => (
+              <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+                {day}
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar Grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {getDaysInMonth(currentMonth).map((date, index) => (
+              <button
+                key={index}
+                onClick={() => date && onDateSelect(date)}
+                disabled={!date}
+                className={`
+                  aspect-square flex items-center justify-center text-sm rounded-full
+                  ${!date ? 'invisible' : ''}
+                  ${isSelected(date) ? 'bg-[#F97316] text-white font-semibold' : ''}
+                  ${isToday(date) && !isSelected(date) ? 'bg-[#00A8CC]/20 text-[#00A8CC] font-semibold' : ''}
+                  ${!isSelected(date) && !isToday(date) && date ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' : ''}
+                `}
+              >
+                {date?.getDate()}
+              </button>
+            ))}
+          </div>
+          
+          {/* Actions */}
+          <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+            <button
+              onClick={() => { onDateSelect(null); onClose(); }}
+              className="flex-1 h-10 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium"
+            >
+              Clear
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 h-10 rounded-xl bg-[#00A8CC] text-white font-medium"
+            >
+              Done
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  )
+}
+
+// Check-in Card Component - Photo dominant design
 const CheckinCard = ({ checkin, onClick, isLast }) => {
   const CategoryIcon = categoryIcons[checkin.venue.category] || Sparkles
   const categoryColor = categoryColors[checkin.venue.category] || '#6B7280'
@@ -162,14 +345,14 @@ const CheckinCard = ({ checkin, onClick, isLast }) => {
     <div className="relative pl-8">
       {/* Timeline dot */}
       <div 
-        className="absolute left-0 top-6 w-3 h-3 rounded-full border-2 border-white z-10"
+        className="absolute left-0 top-10 w-3 h-3 rounded-full border-2 border-white z-10"
         style={{ backgroundColor: '#00A8CC' }}
       />
       
       {/* Timeline line - only show if not last */}
       {!isLast && (
         <div 
-          className="absolute left-[5px] top-8 w-0.5 h-full"
+          className="absolute left-[5px] top-12 w-0.5 h-full"
           style={{ backgroundColor: '#00A8CC' }}
         />
       )}
@@ -179,29 +362,34 @@ const CheckinCard = ({ checkin, onClick, isLast }) => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         onClick={onClick}
-        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-3 mb-4 cursor-pointer hover:shadow-md transition-shadow"
+        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden mb-4 cursor-pointer hover:shadow-md transition-shadow"
       >
-        <div className="flex gap-3">
-          {/* Category Icon */}
-          <div 
-            className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: `${categoryColor}15` }}
-          >
-            <CategoryIcon 
-              className="w-7 h-7" 
-              style={{ color: categoryColor }}
+        <div className="flex">
+          {/* Photo - Dominant */}
+          <div className="relative w-28 h-28 flex-shrink-0">
+            <img 
+              src={checkin.photo || checkin.venue.image} 
+              alt={checkin.venue.name} 
+              className="w-full h-full object-cover"
             />
+            {/* Small Category Icon Badge */}
+            <div 
+              className="absolute top-2 left-2 w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: `${categoryColor}` }}
+            >
+              <CategoryIcon className="w-4 h-4 text-white" />
+            </div>
           </div>
 
           {/* Info */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 p-3 min-w-0">
             <h3 className="font-bold text-gray-900 dark:text-white truncate">
               {checkin.venue.name}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
               {checkin.venue.category} • {checkin.venue.address}
             </p>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1.5">
               <div className="flex items-center gap-0.5">
                 <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
                 <span className="text-sm font-medium text-amber-500">{checkin.rating}</span>
@@ -217,17 +405,6 @@ const CheckinCard = ({ checkin, onClick, isLast }) => {
               </p>
             )}
           </div>
-
-          {/* Photo */}
-          {checkin.photo && (
-            <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
-              <img 
-                src={checkin.photo} 
-                alt="" 
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
         </div>
       </motion.div>
     </div>
@@ -268,9 +445,12 @@ const BottomNav = ({ active = 'timeline' }) => {
 
 const TimelinePage = () => {
   const router = useRouter()
+  const { setCurrentVenues } = useVenues()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All Categories')
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
+  const [selectedDate, setSelectedDate] = useState(null)
+  const [showDatePicker, setShowDatePicker] = useState(false)
   const [selectedVenue, setSelectedVenue] = useState(null)
   const [showVenueDetail, setShowVenueDetail] = useState(false)
 
@@ -280,18 +460,34 @@ const TimelinePage = () => {
   const filteredCheckins = sampleCheckins.filter(checkin => {
     const matchesSearch = searchQuery === '' || 
       checkin.venue.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      checkin.venue.category.toLowerCase().includes(searchQuery.toLowerCase())
+      checkin.venue.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      checkin.venue.address.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesCategory = selectedCategory === 'All Categories' || 
       checkin.venue.category === selectedCategory
-    return matchesSearch && matchesCategory
+    const matchesDate = !selectedDate || 
+      checkin.date.toDateString() === selectedDate.toDateString()
+    return matchesSearch && matchesCategory && matchesDate
   })
 
   const groupedCheckins = groupByDate(filteredCheckins)
+  const totalPlaces = filteredCheckins.length
 
   const handleCheckinClick = (checkin) => {
     setSelectedVenue(checkin.venue)
     setShowVenueDetail(true)
     if (navigator.vibrate) navigator.vibrate(30)
+  }
+
+  const handleShowOnMap = () => {
+    // Set the filtered venues to context and navigate to map
+    const venues = filteredCheckins.map(c => c.venue)
+    setCurrentVenues(venues)
+    router.push('/explore')
+    if (navigator.vibrate) navigator.vibrate(30)
+  }
+
+  const handleDateSelect = (date) => {
+    setSelectedDate(date)
   }
 
   return (
@@ -302,6 +498,21 @@ const TimelinePage = () => {
     >
       {/* Header */}
       <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-40 px-4 pt-4 pb-2">
+        {/* Title Row */}
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Timeline</h1>
+            <p className="text-sm text-gray-500">{totalPlaces} places visited</p>
+          </div>
+          <button
+            onClick={handleShowOnMap}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium"
+          >
+            <Map className="w-4 h-4" />
+            <span>Map</span>
+          </button>
+        </div>
+
         {/* Search Bar */}
         <div className="relative mb-3">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -356,9 +567,18 @@ const TimelinePage = () => {
           </div>
 
           {/* Date Button */}
-          <button className="h-11 px-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300">
-            <Calendar className="w-4 h-4 text-gray-400" />
-            <span className="text-sm font-medium">Date</span>
+          <button 
+            onClick={() => setShowDatePicker(true)}
+            className={`h-11 px-4 rounded-xl flex items-center gap-2 font-medium ${
+              selectedDate 
+                ? 'bg-[#F97316] text-white' 
+                : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            <span className="text-sm">
+              {selectedDate ? formatDate(selectedDate) : 'Date'}
+            </span>
           </button>
         </div>
       </div>
@@ -399,31 +619,35 @@ const TimelinePage = () => {
               <Clock className="w-10 h-10 text-gray-300 dark:text-gray-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              No check-ins yet
+              No check-ins found
             </h3>
             <p className="text-gray-500 text-center max-w-xs">
-              Start exploring Sydney and check in at your favorite places!
+              {selectedDate || selectedCategory !== 'All Categories' 
+                ? 'Try adjusting your filters'
+                : 'Start exploring Sydney and check in at your favorite places!'}
             </p>
-            <Link 
-              href="/explore"
-              className="mt-4 px-6 py-3 rounded-full bg-[#00A8CC] text-white font-medium"
-            >
-              Explore Sydney
-            </Link>
+            {!selectedDate && selectedCategory === 'All Categories' && (
+              <Link 
+                href="/explore"
+                className="mt-4 px-6 py-3 rounded-full bg-[#00A8CC] text-white font-medium"
+              >
+                Explore Sydney
+              </Link>
+            )}
           </div>
         )}
       </div>
 
-      {/* Floating Chat Button */}
-      <Link
-        href="/chat"
-        className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-[#00A8CC] text-white flex items-center justify-center shadow-lg z-40"
-      >
-        <MessageCircle className="w-6 h-6" />
-      </Link>
-
       {/* Bottom Navigation */}
       <BottomNav active="timeline" />
+
+      {/* Date Picker Modal */}
+      <DatePickerModal
+        isOpen={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        selectedDate={selectedDate}
+        onDateSelect={handleDateSelect}
+      />
 
       {/* Venue Detail Sheet */}
       <VenueDetailSheet
