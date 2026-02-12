@@ -551,6 +551,80 @@ const CheckinCard = ({ checkin, onClick }) => {
   )
 }
 
+// Simple Check-in Modal for Timeline
+const CheckInModalSimple = ({ venue, isOpen, onClose }) => {
+  const [rating, setRating] = useState(0)
+  const [comment, setComment] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  if (!isOpen || !venue) return null
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true)
+    if (navigator.vibrate) navigator.vibrate(50)
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    import('sonner').then(({ toast }) => {
+      toast.success(`Checked in at ${venue.name}!`)
+    })
+    
+    setIsSubmitting(false)
+    onClose()
+  }
+
+  return (
+    <AnimatePresence>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/50 z-[3000] flex items-end justify-center">
+        <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-gray-900 rounded-t-3xl w-full max-w-lg p-6 pb-8">
+          <div className="flex justify-center mb-4"><div className="w-10 h-1 rounded-full bg-gray-300" /></div>
+          
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Check in at {venue.name}</h2>
+          <p className="text-sm text-gray-500 mb-6">{venue.category} • {venue.address}</p>
+          
+          {/* Rating */}
+          <div className="mb-4">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Your Rating</label>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button key={star} onClick={() => setRating(star)} className="p-1">
+                  <Star className={`w-8 h-8 transition-colors ${star <= rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`} />
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Comment */}
+          <div className="mb-6">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Comment (optional)</label>
+            <textarea 
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Share your experience..."
+              className="w-full h-24 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-[#00A8CC]"
+            />
+          </div>
+          
+          {/* Actions */}
+          <div className="flex gap-3">
+            <button onClick={onClose} className="flex-1 h-12 rounded-xl border border-gray-200 dark:border-gray-700 font-medium text-gray-700 dark:text-gray-300">
+              Cancel
+            </button>
+            <button 
+              onClick={handleSubmit}
+              disabled={rating === 0 || isSubmitting}
+              className="flex-1 h-12 rounded-xl bg-[#00A8CC] text-white font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Check In'}
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  )
+}
+
 // Bottom Navigation
 const BottomNav = ({ active = 'timeline' }) => {
   const navItems = [
