@@ -235,6 +235,13 @@ const VenueDetailSheet = ({ venue, isOpen, onClose, lastCheckin = null }) => {
                   <button onClick={onClose} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
                     <ChevronDown className="w-6 h-6 text-gray-700" />
                   </button>
+                  {/* Last Check-in Badge */}
+                  {lastCheckin && (
+                    <div className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-[#00A8CC] text-white text-sm font-medium flex items-center gap-1.5 shadow-lg">
+                      <Check className="w-4 h-4" />
+                      <span>Visited {formatCheckinDate(lastCheckin.date)}</span>
+                    </div>
+                  )}
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-20">
                     <span className="text-[#00A8CC] text-sm font-semibold">{venue.category}</span>
                     <h2 className="text-2xl font-bold text-white">{venue.name}</h2>
