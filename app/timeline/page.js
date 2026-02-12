@@ -419,6 +419,12 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain, onDelete
                 {/* Actions */}
                 <div className="flex gap-3 pt-4 pb-4">
                   <button 
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="w-12 h-12 rounded-xl border border-red-200 dark:border-red-800 text-red-500 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                  <button 
                     onClick={handleSave}
                     className={`flex-1 h-12 rounded-xl border font-medium flex items-center justify-center gap-2 transition-all ${
                       saved ? 'bg-red-50 border-red-200 text-red-500' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
@@ -434,6 +440,32 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain, onDelete
                     <Clock className="w-5 h-5" />Check-in Again
                   </button>
                 </div>
+
+                {/* Delete Confirmation */}
+                {showDeleteConfirm && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }} 
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 mb-4"
+                  >
+                    <p className="text-red-700 dark:text-red-300 font-medium mb-3">Delete this check-in?</p>
+                    <p className="text-red-600/70 dark:text-red-400/70 text-sm mb-4">This action cannot be undone.</p>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setShowDeleteConfirm(false)}
+                        className="flex-1 h-10 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        onClick={handleDelete}
+                        className="flex-1 h-10 rounded-xl bg-red-500 text-white font-medium"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
               </div>
             </div>
           </motion.div>
