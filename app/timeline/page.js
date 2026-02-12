@@ -779,7 +779,19 @@ const TimelinePage = () => {
 
       <BottomNav active="timeline" />
       <DateRangePickerModal isOpen={showDatePicker} onClose={() => setShowDatePicker(false)} startDate={startDate} endDate={endDate} onDateRangeSelect={(s, e) => { setStartDate(s); setEndDate(e); }} />
-      <CheckinDetailSheet checkin={selectedCheckin} isOpen={showCheckinDetail} onClose={() => setShowCheckinDetail(false)} />
+      <CheckinDetailSheet checkin={selectedCheckin} isOpen={showCheckinDetail} onClose={() => setShowCheckinDetail(false)} onCheckInAgain={handleCheckInAgain} />
+      
+      {/* Check-in Modal */}
+      {showCheckInModal && checkInVenue && (
+        <CheckInModalSimple
+          venue={checkInVenue}
+          isOpen={showCheckInModal}
+          onClose={() => {
+            setShowCheckInModal(false)
+            setCheckInVenue(null)
+          }}
+        />
+      )}
     </motion.div>
   )
 }
