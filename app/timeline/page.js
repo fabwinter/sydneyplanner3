@@ -637,6 +637,12 @@ const TimelinePage = () => {
     setSelectedMapVenue(null)
   }
 
+  const handleCheckInAgain = (venue) => {
+    setCheckInVenue(venue)
+    setShowCheckinDetail(false)
+    setShowCheckInModal(true)
+  }
+
   const handleMapVenueClick = () => {
     if (selectedCheckin) {
       setShowCheckinDetail(true)
