@@ -471,13 +471,75 @@ const CheckinCard = ({ checkin, onClick }) => {
   )
 }
 
-// Simple Check-in Modal
+// Simple Check-in Modal with Photo Upload
 const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete }) => {
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [photos, setPhotos] = useState([])
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = React.useRef(null)
 
   if (!isOpen || !venue) return null
+
+  const handlePhotoSelect = async (e) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    
+    setIsUploading(true)
+    const newPhotos = []
+    
+    for (const file of Array.from(files)) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file')
+        continue
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image must be less than 5MB')
+        continue
+      }
+      
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        })
+        
+        const data = await response.json()
+        
+        if (data.success && data.url) {
+          newPhotos.push(data.url)
+        } else {
+          // Use local preview as fallback
+          const localUrl = URL.createObjectURL(file)
+          newPhotos.push(localUrl)
+        }
+      } catch (err) {
+        console.error('Upload error:', err)
+        // Use local preview as fallback
+        const localUrl = URL.createObjectURL(file)
+        newPhotos.push(localUrl)
+      }
+    }
+    
+    setPhotos(prev => [...prev, ...newPhotos])
+    setIsUploading(false)
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const removePhoto = (index) => {
+    setPhotos(prev => prev.filter((_, i) => i !== index))
+  }
 
   const handleSubmit = async () => {
     if (rating === 0) {
@@ -502,7 +564,7 @@ const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete }) => {
           venue_image: venue.image,
           rating,
           comment,
-          photos: [],
+          photos: photos,
           user_id: 'anonymous' // Replace with actual user ID when auth is implemented
         })
       })
@@ -511,6 +573,10 @@ const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete }) => {
       
       if (data.success) {
         toast.success(`Checked in at ${venue.name}!`)
+        // Reset form
+        setRating(0)
+        setComment('')
+        setPhotos([])
         if (onCheckinComplete) onCheckinComplete(data)
         onClose()
       } else {
@@ -527,7 +593,7 @@ const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete }) => {
   return (
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/50 z-[3000] flex items-end justify-center">
-        <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-gray-900 rounded-t-3xl w-full max-w-lg p-6 pb-8">
+        <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-gray-900 rounded-t-3xl w-full max-w-lg p-6 pb-8 max-h-[90vh] overflow-y-auto">
           <div className="flex justify-center mb-4"><div className="w-10 h-1 rounded-full bg-gray-300" /></div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Check in at {venue.name}</h2>
           <p className="text-sm text-gray-500 mb-6">{venue.category} • {venue.address}</p>
@@ -543,14 +609,60 @@ const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete }) => {
             </div>
           </div>
           
-          <div className="mb-6">
+          <div className="mb-4">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Comment (optional)</label>
-            <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Share your experience..." className="w-full h-24 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-[#00A8CC]" />
+            <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Share your experience..." className="w-full h-20 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-[#00A8CC]" />
+          </div>
+          
+          {/* Photo Upload Section */}
+          <div className="mb-6">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Add Photos (optional)</label>
+            <div className="flex flex-wrap gap-2">
+              {/* Photo Previews */}
+              {photos.map((photo, index) => (
+                <div key={index} className="relative w-20 h-20 rounded-xl overflow-hidden">
+                  <img src={photo} alt="" className="w-full h-full object-cover" />
+                  <button 
+                    onClick={() => removePhoto(index)}
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 flex items-center justify-center"
+                  >
+                    <X className="w-3 h-3 text-white" />
+                  </button>
+                </div>
+              ))}
+              
+              {/* Add Photo Button */}
+              {photos.length < 4 && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center text-gray-400 hover:border-[#00A8CC] hover:text-[#00A8CC] transition-colors disabled:opacity-50"
+                >
+                  {isUploading ? (
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  ) : (
+                    <>
+                      <Camera className="w-6 h-6 mb-1" />
+                      <span className="text-xs">Add</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePhotoSelect}
+              className="hidden"
+            />
+            <p className="text-xs text-gray-400 mt-2">Max 4 photos, 5MB each</p>
           </div>
           
           <div className="flex gap-3">
             <button onClick={onClose} className="flex-1 h-12 rounded-xl border border-gray-200 dark:border-gray-700 font-medium text-gray-700 dark:text-gray-300">Cancel</button>
-            <button onClick={handleSubmit} disabled={rating === 0 || isSubmitting} className="flex-1 h-12 rounded-xl bg-[#00A8CC] text-white font-medium disabled:opacity-50 flex items-center justify-center gap-2">
+            <button onClick={handleSubmit} disabled={rating === 0 || isSubmitting || isUploading} className="flex-1 h-12 rounded-xl bg-[#00A8CC] text-white font-medium disabled:opacity-50 flex items-center justify-center gap-2">
               {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Check In'}
             </button>
           </div>
