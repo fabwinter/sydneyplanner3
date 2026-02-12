@@ -146,7 +146,7 @@ const CheckInModal = ({ venue, isOpen, onClose, onComplete }) => {
   )
 }
 
-const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
+const VenueDetailSheet = ({ venue, isOpen, onClose, lastCheckin = null }) => {
   const { isAuthenticated } = useAuth()
   const [saved, setSaved] = useState(false)
   const [showCheckIn, setShowCheckIn] = useState(false)
@@ -155,6 +155,21 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
   const [signInAction, setSignInAction] = useState('')
 
   if (!venue) return null
+
+  // Format last check-in date
+  const formatCheckinDate = (date) => {
+    if (!date) return null
+    const now = new Date()
+    const checkinDate = new Date(date)
+    const diffDays = Math.floor((now - checkinDate) / (1000 * 60 * 60 * 24))
+    
+    if (diffDays === 0) return 'Today'
+    if (diffDays === 1) return 'Yesterday'
+    if (diffDays < 7) return `${diffDays} days ago`
+    
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    return `${checkinDate.getDate()} ${months[checkinDate.getMonth()]}`
+  }
 
   const handleSave = () => {
     if (!isAuthenticated) { setSignInAction('save'); setShowSignInPrompt(true); return }
