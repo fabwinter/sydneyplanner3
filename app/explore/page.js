@@ -329,13 +329,13 @@ const ExplorePage = () => {
         transition={{ type: 'spring', damping: 30, stiffness: 300 }} 
         className="fixed bottom-0 left-0 right-0 z-[1000]"
       >
-        {/* List/Map Toggle Button */}
+        {/* List/Map Toggle Button - Fixed Position */}
         <div className="flex justify-center pb-2">
           <motion.button 
             initial={{ opacity: 0, y: 10 }} 
             animate={{ opacity: 1, y: 0 }} 
             onClick={handleToggleList} 
-            className="flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-gray-900 dark:bg-gray-800 text-white text-sm font-medium shadow-lg"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#00A8CC] text-white text-sm font-semibold shadow-lg"
           >
             {showListPopup ? (
               <>
