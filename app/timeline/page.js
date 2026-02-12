@@ -877,7 +877,15 @@ const TimelinePage = () => {
       <CheckinDetailSheet checkin={selectedCheckin} isOpen={showCheckinDetail} onClose={() => setShowCheckinDetail(false)} onCheckInAgain={handleCheckInAgain} />
       
       {showCheckInModal && checkInVenue && (
-        <CheckInModalSimple venue={checkInVenue} isOpen={showCheckInModal} onClose={() => { setShowCheckInModal(false); setCheckInVenue(null); }} />
+        <CheckInModalSimple 
+          venue={checkInVenue} 
+          isOpen={showCheckInModal} 
+          onClose={() => { setShowCheckInModal(false); setCheckInVenue(null); }} 
+          onCheckinComplete={() => {
+            // Refresh the checkins list after a new check-in
+            fetchCheckins(true)
+          }}
+        />
       )}
     </motion.div>
   )
