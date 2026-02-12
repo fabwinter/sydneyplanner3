@@ -731,40 +731,47 @@ const TimelinePage = () => {
       const data = await response.json()
       
       if (data.checkins) {
-        // Transform API data to match UI structure
-        const transformedCheckins = data.checkins.map(checkin => {
-          const createdAt = new Date(checkin.created_at)
-          const hours = createdAt.getHours()
-          const minutes = createdAt.getMinutes()
-          const ampm = hours >= 12 ? 'pm' : 'am'
-          const displayHours = hours % 12 || 12
-          const timeString = `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`
-          
-          return {
-            id: checkin.id,
-            venue: {
-              id: checkin.venue_id,
-              name: checkin.venue_name || 'Unknown Venue',
-              category: checkin.venue_category || 'Other',
-              address: checkin.venue_address || '',
-              lat: checkin.venue_lat || -33.8688,
-              lng: checkin.venue_lng || 151.2093,
-              rating: checkin.rating || 4,
-              distance: '0 km',
-              image: checkin.venue_image || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&h=600&fit=crop',
-              description: `You checked in here on ${createdAt.toLocaleDateString()}`,
-              phone: '',
-              website: '',
-              hours: '',
-              amenities: [],
-            },
-            rating: checkin.rating,
-            comment: checkin.comment || '',
-            time: timeString,
-            date: createdAt,
-            photos: checkin.photos || [],
-          }
-        })
+        // Transform API data to match UI structure, filter out invalid entries
+        const transformedCheckins = data.checkins
+          .filter(checkin => checkin.venue_name && checkin.venue_category) // Filter out incomplete check-ins
+          .map(checkin => {
+            const createdAt = new Date(checkin.created_at)
+            const hours = createdAt.getHours()
+            const minutes = createdAt.getMinutes()
+            const ampm = hours >= 12 ? 'pm' : 'am'
+            const displayHours = hours % 12 || 12
+            const timeString = `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`
+            
+            // Filter photos to only include valid URLs
+            const validPhotos = (checkin.photos || []).filter(photo => 
+              photo && (photo.startsWith('http://') || photo.startsWith('https://') || photo.startsWith('blob:'))
+            )
+            
+            return {
+              id: checkin.id,
+              venue: {
+                id: checkin.venue_id,
+                name: checkin.venue_name || 'Unknown Venue',
+                category: checkin.venue_category || 'Other',
+                address: checkin.venue_address || '',
+                lat: checkin.venue_lat || -33.8688,
+                lng: checkin.venue_lng || 151.2093,
+                rating: checkin.rating || 4,
+                distance: '0 km',
+                image: checkin.venue_image || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&h=600&fit=crop',
+                description: `You checked in here on ${createdAt.toLocaleDateString()}`,
+                phone: '',
+                website: '',
+                hours: '',
+                amenities: [],
+              },
+              rating: checkin.rating,
+              comment: checkin.comment || '',
+              time: timeString,
+              date: createdAt,
+              photos: validPhotos,
+            }
+          })
         
         setCheckins(transformedCheckins)
         if (showRefreshToast) toast.success('Timeline refreshed!')
@@ -775,6 +782,29 @@ const TimelinePage = () => {
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)
+    }
+  }, [])
+
+  // Delete a check-in
+  const deleteCheckin = useCallback(async (checkinId) => {
+    try {
+      const response = await fetch(`/api/checkins/${checkinId}`, {
+        method: 'DELETE'
+      })
+      const data = await response.json()
+      
+      if (data.success) {
+        toast.success('Check-in deleted')
+        // Remove from local state
+        setCheckins(prev => prev.filter(c => c.id !== checkinId))
+        setShowCheckinDetail(false)
+        setSelectedCheckin(null)
+      } else {
+        toast.error(data.error || 'Failed to delete check-in')
+      }
+    } catch (error) {
+      console.error('Error deleting check-in:', error)
+      toast.error('Failed to delete check-in')
     }
   }, [])
 
