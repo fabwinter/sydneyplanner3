@@ -644,7 +644,7 @@ const CheckinCard = ({ checkin, onClick }) => {
 }
 
 // Simple Check-in Modal
-const CheckInModalSimple = ({ venue, isOpen, onClose }) => {
+const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete }) => {
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -652,12 +652,48 @@ const CheckInModalSimple = ({ venue, isOpen, onClose }) => {
   if (!isOpen || !venue) return null
 
   const handleSubmit = async () => {
+    if (rating === 0) {
+      toast.error('Please select a rating')
+      return
+    }
+    
     setIsSubmitting(true)
     if (navigator.vibrate) navigator.vibrate(50)
-    await new Promise(resolve => setTimeout(resolve, 500))
-    toast.success(`Checked in at ${venue.name}!`)
-    setIsSubmitting(false)
-    onClose()
+    
+    try {
+      const response = await fetch('/api/checkins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          venue_id: venue.id,
+          venue_name: venue.name,
+          venue_category: venue.category,
+          venue_address: venue.address,
+          venue_lat: venue.lat,
+          venue_lng: venue.lng,
+          venue_image: venue.image,
+          rating,
+          comment,
+          photos: [],
+          user_id: 'anonymous' // Replace with actual user ID when auth is implemented
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        toast.success(`Checked in at ${venue.name}!`)
+        if (onCheckinComplete) onCheckinComplete(data)
+        onClose()
+      } else {
+        toast.error('Failed to check in')
+      }
+    } catch (err) {
+      console.error('Check-in error:', err)
+      toast.error('Failed to check in')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -669,7 +705,7 @@ const CheckInModalSimple = ({ venue, isOpen, onClose }) => {
           <p className="text-sm text-gray-500 mb-6">{venue.category} • {venue.address}</p>
           
           <div className="mb-4">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Your Rating</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Your Rating *</label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button key={star} onClick={() => setRating(star)} className="p-1">
