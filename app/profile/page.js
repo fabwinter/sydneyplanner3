@@ -7,11 +7,12 @@ import {
   MessageCircle, Map, Heart, Coffee, Umbrella, TreePine, Landmark,
   Sparkles, UtensilsCrossed, Crown, Bookmark, Edit3, Star, Trophy,
   Bell, Shield, HelpCircle, LogOut, Moon, Sun, Camera, Loader2,
-  BookMarked, Users, Zap
+  BookMarked, Users, Zap, Trash2, X, Check
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { Input } from '@/components/ui/input'
 
 // Category icon and emoji mapping
 const categoryConfig = {
