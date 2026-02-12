@@ -6,13 +6,13 @@ import {
   Send, Plus, Map, MapPin, Star, Heart, ChevronRight, 
   Clock, MessageCircle, User, Loader2
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useVenues } from '@/lib/VenueContext'
+import VenueDetailSheet from '@/components/VenueDetailSheet'
 
 const quickButtons = [
   { label: 'Best brunch spots', emoji: '🍳', query: 'best brunch cafes in Sydney' },
@@ -36,11 +36,7 @@ const BottomNav = ({ active = 'home' }) => {
           const Icon = item.icon
           const isActive = active === item.id
           return (
-            <Link
-              key={item.id}
-              href={item.href}
-              className={`flex flex-col items-center justify-center px-4 py-2 transition-all ${isActive ? 'text-gray-900 dark:text-white' : 'text-gray-400 hover:text-gray-600'}`}
-            >
+            <Link key={item.id} href={item.href} className={`flex flex-col items-center justify-center px-4 py-2 transition-all ${isActive ? 'text-gray-900 dark:text-white' : 'text-gray-400 hover:text-gray-600'}`}>
               <Icon className={`w-6 h-6 ${isActive ? 'fill-current' : ''}`} />
               <span className="text-xs mt-1 font-medium">{item.label}</span>
             </Link>
@@ -51,7 +47,7 @@ const BottomNav = ({ active = 'home' }) => {
   )
 }
 
-const VenueCard = ({ venue, index }) => {
+const VenueCard = ({ venue, index, onClick }) => {
   const [saved, setSaved] = useState(false)
 
   const handleSave = (e) => {
@@ -67,7 +63,10 @@ const VenueCard = ({ venue, index }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
     >
-      <Card className="bg-white dark:bg-gray-800 overflow-hidden mb-3 shadow-sm border border-gray-100 dark:border-gray-700 rounded-2xl">
+      <Card 
+        className="bg-white dark:bg-gray-800 overflow-hidden mb-3 shadow-sm border border-gray-100 dark:border-gray-700 rounded-2xl cursor-pointer hover:shadow-md transition-shadow"
+        onClick={() => onClick && onClick(venue)}
+      >
         <div className="relative h-36 overflow-hidden">
           <img src={venue.image} alt={venue.name} className="w-full h-full object-cover" />
           <button
@@ -90,9 +89,7 @@ const VenueCard = ({ venue, index }) => {
               <span className="text-gray-300 dark:text-gray-600">•</span>
               <span className="text-sm text-gray-500">{venue.distance}</span>
             </div>
-            <Link href={`/venue/${venue.id}`}>
-              <span className="text-[#00A8CC] font-medium text-sm flex items-center hover:underline">View <ChevronRight className="w-4 h-4 ml-0.5" /></span>
-            </Link>
+            <span className="text-[#00A8CC] font-medium text-sm flex items-center">View <ChevronRight className="w-4 h-4 ml-0.5" /></span>
           </div>
         </div>
       </Card>
@@ -106,6 +103,8 @@ const ChatPage = () => {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [userName, setUserName] = useState('explorer')
+  const [selectedVenue, setSelectedVenue] = useState(null)
+  const [showVenueDetail, setShowVenueDetail] = useState(false)
   const messagesEndRef = useRef(null)
 
   useEffect(() => {
@@ -152,6 +151,12 @@ const ChatPage = () => {
   const handleOpenMap = () => {
     if (navigator.vibrate) navigator.vibrate(30)
     router.push('/explore')
+  }
+
+  const handleVenueClick = (venue) => {
+    setSelectedVenue(venue)
+    setShowVenueDetail(true)
+    if (navigator.vibrate) navigator.vibrate(30)
   }
 
   const hasVenues = currentVenues.length > 0
@@ -219,7 +224,9 @@ const ChatPage = () => {
                       </div>
                       {msg.venues && msg.venues.length > 0 && (
                         <div className="space-y-3">
-                          {msg.venues.map((venue, idx) => (<VenueCard key={venue.id} venue={venue} index={idx} />))}
+                          {msg.venues.map((venue, idx) => (
+                            <VenueCard key={venue.id} venue={venue} index={idx} onClick={handleVenueClick} />
+                          ))}
                         </div>
                       )}
                     </div>
@@ -242,7 +249,6 @@ const ChatPage = () => {
 
       {/* Bottom Controls */}
       <div className="fixed bottom-16 left-0 right-0 z-40">
-        {/* Map Button - smaller, just above input */}
         {hasVenues && !isLoading && (
           <div className="flex justify-center mb-2">
             <motion.button
@@ -257,7 +263,6 @@ const ChatPage = () => {
           </div>
         )}
 
-        {/* Input Area */}
         <div className="px-4 pb-4 bg-gray-50 dark:bg-gray-900">
           <div className="max-w-lg mx-auto">
             <div className="flex items-center gap-3">
@@ -276,6 +281,13 @@ const ChatPage = () => {
       </div>
 
       <BottomNav active="home" />
+
+      {/* Venue Detail Sheet */}
+      <VenueDetailSheet 
+        venue={selectedVenue} 
+        isOpen={showVenueDetail} 
+        onClose={() => setShowVenueDetail(false)} 
+      />
     </motion.div>
   )
 }
