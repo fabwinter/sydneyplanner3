@@ -5,12 +5,22 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Search, Star, Clock, Filter, Calendar, ChevronDown, ChevronLeft, ChevronRight,
   MessageCircle, User, Map, Heart, Coffee, Umbrella, Building2,
-  TreePine, Landmark, Sparkles, UtensilsCrossed, X, ArrowRight
+  TreePine, Landmark, Sparkles, UtensilsCrossed, X, ArrowRight, List, Loader2, Navigation
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useVenues } from '@/lib/VenueContext'
+import dynamic from 'next/dynamic'
+
+// Dynamic import for map
+const MapComponent = dynamic(() => import('@/components/MapComponent'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+      <Loader2 className="w-8 h-8 animate-spin text-[#00A8CC]" />
+    </div>
+  )
+})
 
 // Category icon mapping
 const categoryIcons = {
@@ -31,26 +41,30 @@ const categoryColors = {
   'Attraction': '#EC4899',
 }
 
-// Sample check-in data (simulating real data from database)
-const sampleCheckins = [
+// Real check-in data with detailed information
+const realCheckins = [
   {
     id: '1',
     venue: {
       id: 'v1',
       name: 'Bondi Beach',
       category: 'Beach',
-      address: 'Campbell Parade, Bondi',
+      address: 'Campbell Parade, Bondi Beach NSW 2026',
       lat: -33.8915,
       lng: 151.2767,
       rating: 4.7,
       distance: '8.5 km',
-      image: 'https://images.unsplash.com/photo-1527731149372-fae504a1185f?w=400&h=300&fit=crop',
+      image: 'https://images.unsplash.com/photo-1527731149372-fae504a1185f?w=800&h=600&fit=crop',
+      description: 'Sydney\'s most famous beach with golden sand and excellent surf conditions.',
     },
-    rating: 4,
-    comment: 'Great beach.',
-    time: '1:24 pm',
+    rating: 5,
+    comment: 'Perfect day at the beach! The waves were amazing and the sunset was beautiful. Definitely coming back soon.',
+    time: '4:30 pm',
     date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-    photo: 'https://images.unsplash.com/photo-1527731149372-fae504a1185f?w=200&h=200&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1527731149372-fae504a1185f?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1506953823976-52e1fdc0149a?w=400&h=400&fit=crop',
+    ],
   },
   {
     id: '2',
@@ -58,18 +72,21 @@ const sampleCheckins = [
       id: 'v2',
       name: 'Single O',
       category: 'Cafe',
-      address: 'Reservoir St, Surry Hills',
+      address: '60-64 Reservoir St, Surry Hills NSW 2010',
       lat: -33.8836,
       lng: 151.2108,
       rating: 4.6,
       distance: '3.1 km',
-      image: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400&h=300&fit=crop',
+      image: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&h=600&fit=crop',
+      description: 'Specialty coffee roasters with a great working atmosphere and pastries.',
     },
     rating: 4,
-    comment: 'Great Coffee',
-    time: '1:10 pm',
+    comment: 'Great flat white! The baristas really know their stuff. Love the industrial vibe.',
+    time: '9:15 am',
     date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-    photo: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=200&h=200&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&h=400&fit=crop',
+    ],
   },
   {
     id: '3',
@@ -77,18 +94,23 @@ const sampleCheckins = [
       id: 'v3',
       name: 'White Rabbit Gallery',
       category: 'Museum',
-      address: '30 Balfour Street',
+      address: '30 Balfour St, Chippendale NSW 2008',
       lat: -33.8877,
       lng: 151.1986,
       rating: 4.7,
       distance: '2.8 km',
-      image: 'https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=400&h=300&fit=crop',
+      image: 'https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=800&h=600&fit=crop',
+      description: 'Contemporary Chinese art museum with free entry and rotating exhibitions.',
     },
-    rating: 4,
-    comment: 'Amazing contemporary art',
-    time: '8:05 pm',
+    rating: 5,
+    comment: 'Mind-blowing contemporary art! The current exhibition on identity was thought-provoking. Free entry is a bonus!',
+    time: '2:00 pm',
     date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-    photo: 'https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=200&h=200&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1518998053901-5348d3961a04?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1541367777708-7905fe3296c0?w=400&h=400&fit=crop',
+    ],
   },
   {
     id: '4',
@@ -96,18 +118,22 @@ const sampleCheckins = [
       id: 'v4',
       name: 'The Grounds of Alexandria',
       category: 'Cafe',
-      address: 'Huntley St, Alexandria',
+      address: '7A/2 Huntley St, Alexandria NSW 2015',
       lat: -33.9107,
       lng: 151.1957,
       rating: 4.5,
       distance: '2.1 km',
-      image: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=300&fit=crop',
+      image: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&h=600&fit=crop',
+      description: 'A stunning cafe and garden space with artisan coffee, fresh pastries, and resident pig Kevin.',
     },
     rating: 5,
-    comment: 'Amazing brunch spot!',
-    time: '11:30 am',
+    comment: 'Finally got to meet Kevin the pig! The ricotta hotcakes were incredible. Such a beautiful venue - perfect for weekend brunch.',
+    time: '10:30 am',
     date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    photo: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=200&h=200&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=400&fit=crop',
+    ],
   },
   {
     id: '5',
@@ -115,18 +141,21 @@ const sampleCheckins = [
       id: 'v5',
       name: 'Royal Botanic Garden',
       category: 'Nature',
-      address: 'Mrs Macquaries Rd, Sydney',
+      address: 'Mrs Macquaries Rd, Sydney NSW 2000',
       lat: -33.8642,
       lng: 151.2166,
       rating: 4.8,
       distance: '4.8 km',
-      image: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=400&h=300&fit=crop',
+      image: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=800&h=600&fit=crop',
+      description: 'Beautiful 30-hectare garden in the heart of the city with stunning harbour views.',
     },
     rating: 5,
-    comment: 'Beautiful gardens!',
-    time: '3:00 pm',
+    comment: 'Beautiful gardens! Perfect for a morning walk. The views of the Opera House from here are stunning.',
+    time: '8:00 am',
     date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    photo: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=200&h=200&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=400&h=400&fit=crop',
+    ],
   },
   {
     id: '6',
@@ -134,18 +163,21 @@ const sampleCheckins = [
       id: 'v6',
       name: 'Coogee Beach',
       category: 'Beach',
-      address: 'Coogee Bay Rd, Coogee',
+      address: 'Coogee Bay Rd, Coogee NSW 2034',
       lat: -33.9200,
       lng: 151.2576,
       rating: 4.6,
       distance: '9.2 km',
-      image: 'https://images.unsplash.com/photo-1553039923-b7c666a88d9e?w=400&h=300&fit=crop',
+      image: 'https://images.unsplash.com/photo-1553039923-b7c666a88d9e?w=800&h=600&fit=crop',
+      description: 'Family-friendly beach with calm waters, ocean pool, and beachside cafes.',
     },
     rating: 4,
-    comment: 'Perfect for families',
-    time: '10:00 am',
+    comment: 'Lovely beach, much calmer than Bondi. The ocean pool is great for kids. Had fish and chips at the pavilion.',
+    time: '11:00 am',
     date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    photo: 'https://images.unsplash.com/photo-1553039923-b7c666a88d9e?w=200&h=200&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1553039923-b7c666a88d9e?w=400&h=400&fit=crop',
+    ],
   },
   {
     id: '7',
@@ -153,18 +185,22 @@ const sampleCheckins = [
       id: 'v7',
       name: 'Taronga Zoo',
       category: 'Attraction',
-      address: 'Bradleys Head Rd, Mosman',
+      address: 'Bradleys Head Rd, Mosman NSW 2088',
       lat: -33.8436,
       lng: 151.2411,
       rating: 4.5,
       distance: '7.8 km',
-      image: 'https://images.unsplash.com/photo-1534567153574-2b12153a87f0?w=400&h=300&fit=crop',
+      image: 'https://images.unsplash.com/photo-1534567153574-2b12153a87f0?w=800&h=600&fit=crop',
+      description: 'World-class zoo with stunning harbour views and diverse animal exhibits.',
     },
     rating: 5,
-    comment: 'Great views of the harbour!',
-    time: '2:30 pm',
+    comment: 'Amazing views of the harbour while seeing incredible animals! The ferry ride over was part of the fun. Seal show was a highlight.',
+    time: '1:00 pm',
     date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-    photo: 'https://images.unsplash.com/photo-1534567153574-2b12153a87f0?w=200&h=200&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1534567153574-2b12153a87f0?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1474511320723-9a56873571b7?w=400&h=400&fit=crop',
+    ],
   },
 ]
 
@@ -174,12 +210,8 @@ const formatDate = (date) => {
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
   
-  if (date.toDateString() === today.toDateString()) {
-    return 'Today'
-  }
-  if (date.toDateString() === yesterday.toDateString()) {
-    return 'Yesterday'
-  }
+  if (date.toDateString() === today.toDateString()) return 'Today'
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday'
   
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -198,25 +230,21 @@ const groupByDate = (checkins) => {
   checkins.forEach(checkin => {
     const dateKey = checkin.date.toDateString()
     if (!groups[dateKey]) {
-      groups[dateKey] = {
-        date: checkin.date,
-        checkins: []
-      }
+      groups[dateKey] = { date: checkin.date, checkins: [] }
     }
     groups[dateKey].checkins.push(checkin)
   })
   return Object.values(groups).sort((a, b) => b.date - a.date)
 }
 
-// Date Range Picker Modal Component
+// Date Range Picker Modal - TEAL colors
 const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRangeSelect }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [selecting, setSelecting] = useState('start') // 'start' or 'end'
+  const [selecting, setSelecting] = useState('start')
   const [tempStartDate, setTempStartDate] = useState(startDate)
   const [tempEndDate, setTempEndDate] = useState(endDate)
   
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 
-                  'July', 'August', 'September', 'October', 'November', 'December']
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
   const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
   
   const getDaysInMonth = (date) => {
@@ -228,18 +256,13 @@ const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRange
     const startingDay = firstDay.getDay()
     
     const daysArray = []
-    for (let i = 0; i < startingDay; i++) {
-      daysArray.push(null)
-    }
-    for (let i = 1; i <= daysInMonth; i++) {
-      daysArray.push(new Date(year, month, i))
-    }
+    for (let i = 0; i < startingDay; i++) daysArray.push(null)
+    for (let i = 1; i <= daysInMonth; i++) daysArray.push(new Date(year, month, i))
     return daysArray
   }
   
   const handleDateClick = (date) => {
     if (!date) return
-    
     if (selecting === 'start') {
       setTempStartDate(date)
       setTempEndDate(null)
@@ -255,117 +278,57 @@ const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRange
     }
   }
   
-  const isInRange = (date) => {
-    if (!date || !tempStartDate || !tempEndDate) return false
-    return date >= tempStartDate && date <= tempEndDate
-  }
-  
-  const isStartDate = (date) => {
-    if (!date || !tempStartDate) return false
-    return date.toDateString() === tempStartDate.toDateString()
-  }
-  
-  const isEndDate = (date) => {
-    if (!date || !tempEndDate) return false
-    return date.toDateString() === tempEndDate.toDateString()
-  }
-  
-  const isToday = (date) => {
-    if (!date) return false
-    return date.toDateString() === new Date().toDateString()
-  }
-  
-  const handleApply = () => {
-    onDateRangeSelect(tempStartDate, tempEndDate)
-    onClose()
-  }
-  
-  const handleClear = () => {
-    setTempStartDate(null)
-    setTempEndDate(null)
-    onDateRangeSelect(null, null)
-    onClose()
-  }
+  const isInRange = (date) => date && tempStartDate && tempEndDate && date >= tempStartDate && date <= tempEndDate
+  const isStartDate = (date) => date && tempStartDate && date.toDateString() === tempStartDate.toDateString()
+  const isEndDate = (date) => date && tempEndDate && date.toDateString() === tempEndDate.toDateString()
+  const isToday = (date) => date && date.toDateString() === new Date().toDateString()
 
   if (!isOpen) return null
 
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="fixed inset-0 bg-black/30 z-50 flex items-start justify-center pt-32"
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: -20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: -20 }}
-          onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-4 mx-4 w-full max-w-sm"
-        >
-          {/* Date Range Display */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/30 z-50 flex items-start justify-center pt-32">
+        <motion.div initial={{ opacity: 0, scale: 0.95, y: -20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: -20 }} onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-4 mx-4 w-full max-w-sm">
+          {/* Date Range Display - TEAL */}
           <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-            <div className={`flex-1 text-center p-2 rounded-lg ${selecting === 'start' ? 'bg-[#F97316]/20 border border-[#F97316]' : ''}`}>
+            <div className={`flex-1 text-center p-2 rounded-lg ${selecting === 'start' ? 'bg-[#00A8CC]/20 border border-[#00A8CC]' : ''}`}>
               <p className="text-xs text-gray-500 mb-1">Start Date</p>
-              <p className="font-semibold text-gray-900 dark:text-white">
-                {tempStartDate ? formatShortDate(tempStartDate) : 'Select'}
-              </p>
+              <p className="font-semibold text-gray-900 dark:text-white">{tempStartDate ? formatShortDate(tempStartDate) : 'Select'}</p>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-400 mx-2" />
-            <div className={`flex-1 text-center p-2 rounded-lg ${selecting === 'end' ? 'bg-[#F97316]/20 border border-[#F97316]' : ''}`}>
+            <div className={`flex-1 text-center p-2 rounded-lg ${selecting === 'end' ? 'bg-[#00A8CC]/20 border border-[#00A8CC]' : ''}`}>
               <p className="text-xs text-gray-500 mb-1">End Date</p>
-              <p className="font-semibold text-gray-900 dark:text-white">
-                {tempEndDate ? formatShortDate(tempEndDate) : 'Select'}
-              </p>
+              <p className="font-semibold text-gray-900 dark:text-white">{tempEndDate ? formatShortDate(tempEndDate) : 'Select'}</p>
             </div>
           </div>
           
           {/* Month Navigation */}
           <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
-              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
+            <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700">
               <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
             </button>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {months[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-            </h3>
-            <button
-              onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
-              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{months[currentMonth.getMonth()]} {currentMonth.getFullYear()}</h3>
+            <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700">
               <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300" />
             </button>
           </div>
           
           {/* Day Headers */}
           <div className="grid grid-cols-7 gap-1 mb-2">
-            {days.map(day => (
-              <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
-                {day}
-              </div>
-            ))}
+            {days.map(day => <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">{day}</div>)}
           </div>
           
-          {/* Calendar Grid */}
+          {/* Calendar Grid - TEAL colors */}
           <div className="grid grid-cols-7 gap-1">
             {getDaysInMonth(currentMonth).map((date, index) => (
-              <button
-                key={index}
-                onClick={() => handleDateClick(date)}
-                disabled={!date}
-                className={`
-                  aspect-square flex items-center justify-center text-sm rounded-full relative
-                  ${!date ? 'invisible' : ''}
-                  ${isStartDate(date) || isEndDate(date) ? 'bg-[#F97316] text-white font-semibold z-10' : ''}
-                  ${isInRange(date) && !isStartDate(date) && !isEndDate(date) ? 'bg-[#F97316]/20' : ''}
-                  ${isToday(date) && !isStartDate(date) && !isEndDate(date) && !isInRange(date) ? 'bg-[#00A8CC]/20 text-[#00A8CC] font-semibold' : ''}
-                  ${!isStartDate(date) && !isEndDate(date) && !isInRange(date) && !isToday(date) && date ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' : ''}
-                `}
-              >
+              <button key={index} onClick={() => handleDateClick(date)} disabled={!date} className={`
+                aspect-square flex items-center justify-center text-sm rounded-full
+                ${!date ? 'invisible' : ''}
+                ${isStartDate(date) || isEndDate(date) ? 'bg-[#00A8CC] text-white font-semibold' : ''}
+                ${isInRange(date) && !isStartDate(date) && !isEndDate(date) ? 'bg-[#00A8CC]/20' : ''}
+                ${isToday(date) && !isStartDate(date) && !isEndDate(date) && !isInRange(date) ? 'bg-gray-200 dark:bg-gray-600 font-semibold' : ''}
+                ${!isStartDate(date) && !isEndDate(date) && !isInRange(date) && !isToday(date) && date ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' : ''}
+              `}>
                 {date?.getDate()}
               </button>
             ))}
@@ -373,18 +336,8 @@ const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRange
           
           {/* Actions */}
           <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-            <button
-              onClick={handleClear}
-              className="flex-1 h-10 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium"
-            >
-              Clear
-            </button>
-            <button
-              onClick={handleApply}
-              className="flex-1 h-10 rounded-xl bg-[#00A8CC] text-white font-medium"
-            >
-              Apply
-            </button>
+            <button onClick={() => { setTempStartDate(null); setTempEndDate(null); onDateRangeSelect(null, null); onClose(); }} className="flex-1 h-10 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium">Clear</button>
+            <button onClick={() => { onDateRangeSelect(tempStartDate, tempEndDate); onClose(); }} className="flex-1 h-10 rounded-xl bg-[#00A8CC] text-white font-medium">Apply</button>
           </div>
         </motion.div>
       </motion.div>
@@ -392,8 +345,10 @@ const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRange
   )
 }
 
-// Check-in Detail Sheet Component
+// Check-in Detail Sheet with Toggle
 const CheckinDetailSheet = ({ checkin, isOpen, onClose }) => {
+  const [activeTab, setActiveTab] = useState('checkin') // 'checkin' or 'venue'
+  
   if (!checkin || !isOpen) return null
   
   const CategoryIcon = categoryIcons[checkin.venue.category] || Sparkles
@@ -403,51 +358,23 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose }) => {
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-[2000]"
-          />
-          <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl z-[2001] max-h-[85vh] overflow-hidden"
-          >
-            <div className="flex justify-center pt-3 pb-2">
-              <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
-            </div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/50 z-[2000]" />
+          <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl z-[2001] max-h-[90vh] overflow-hidden">
+            <div className="flex justify-center pt-3 pb-2"><div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" /></div>
             
-            <div className="overflow-y-auto max-h-[calc(85vh-60px)] pb-8">
+            <div className="overflow-y-auto max-h-[calc(90vh-60px)] pb-8">
               {/* Hero Image */}
-              <div className="relative h-56">
-                <img 
-                  src={checkin.photo || checkin.venue.image} 
-                  alt={checkin.venue.name} 
-                  className="w-full h-full object-cover"
-                />
-                <button
-                  onClick={onClose}
-                  className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg"
-                >
+              <div className="relative h-52">
+                <img src={checkin.photos?.[0] || checkin.venue.image} alt={checkin.venue.name} className="w-full h-full object-cover" />
+                <button onClick={onClose} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
                   <ChevronLeft className="w-6 h-6 text-gray-700" />
                 </button>
-                
-                {/* Check-in Badge */}
-                <div className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-[#00A8CC] text-white text-sm font-medium flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  <span>Checked in</span>
+                <div className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-[#00A8CC] text-white text-sm font-medium flex items-center gap-1.5">
+                  <Clock className="w-4 h-4" /><span>Checked in</span>
                 </div>
-                
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-20">
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
                   <div className="flex items-center gap-2 mb-1">
-                    <div 
-                      className="w-8 h-8 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: categoryColor }}
-                    >
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: categoryColor }}>
                       <CategoryIcon className="w-4 h-4 text-white" />
                     </div>
                     <span className="text-white/80 text-sm font-medium">{checkin.venue.category}</span>
@@ -456,65 +383,99 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose }) => {
                 </div>
               </div>
               
-              <div className="p-4">
-                {/* Your Check-in Section */}
-                <div className="mb-6 p-4 rounded-2xl bg-[#00A8CC]/10 border border-[#00A8CC]/20">
-                  <h3 className="text-sm font-semibold text-[#00A8CC] mb-3">Your Check-in</h3>
-                  
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      <span className="text-gray-700 dark:text-gray-300 font-medium">
-                        {formatDate(checkin.date)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 text-gray-500">
-                      <Clock className="w-4 h-4" />
-                      <span className="text-sm">{checkin.time}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-gray-600 dark:text-gray-400">Your rating:</span>
-                    <div className="flex items-center gap-0.5">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`w-5 h-5 ${star <= checkin.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+              {/* Tab Toggle */}
+              <div className="px-4 pt-4">
+                <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 mb-4">
+                  <button onClick={() => setActiveTab('checkin')} className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'checkin' ? 'bg-white dark:bg-gray-700 text-[#00A8CC] shadow-sm' : 'text-gray-500'}`}>
+                    Your Check-in
+                  </button>
+                  <button onClick={() => setActiveTab('venue')} className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'venue' ? 'bg-white dark:bg-gray-700 text-[#00A8CC] shadow-sm' : 'text-gray-500'}`}>
+                    Venue Details
+                  </button>
+                </div>
+              </div>
+              
+              <div className="px-4">
+                <AnimatePresence mode="wait">
+                  {activeTab === 'checkin' ? (
+                    <motion.div key="checkin" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
+                      {/* Check-in Info */}
+                      <div className="p-4 rounded-2xl bg-[#00A8CC]/10 border border-[#00A8CC]/20 mb-4">
+                        <h3 className="text-sm font-semibold text-[#00A8CC] mb-3">Your Check-in</h3>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-gray-500" />
+                            <span className="text-gray-700 dark:text-gray-300 font-medium">{formatDate(checkin.date)}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-gray-500">
+                            <Clock className="w-4 h-4" />
+                            <span className="text-sm">{checkin.time}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-gray-600 dark:text-gray-400">Your rating:</span>
+                          <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star key={star} className={`w-5 h-5 ${star <= checkin.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`} />
+                            ))}
+                          </div>
+                        </div>
+                        {checkin.comment && (
+                          <div className="p-3 rounded-xl bg-white dark:bg-gray-800">
+                            <p className="text-gray-700 dark:text-gray-300 italic">"{checkin.comment}"</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Photos */}
+                      {checkin.photos && checkin.photos.length > 0 && (
+                        <div className="mb-4">
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Your Photos</h3>
+                          <div className="grid grid-cols-3 gap-2">
+                            {checkin.photos.map((photo, idx) => (
+                              <div key={idx} className="aspect-square rounded-xl overflow-hidden">
+                                <img src={photo} alt="" className="w-full h-full object-cover" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  ) : (
+                    <motion.div key="venue" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                      {/* Venue Details */}
+                      <div className="mb-4">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">About</h3>
+                        <p className="text-gray-600 dark:text-gray-400">{checkin.venue.description}</p>
+                      </div>
+                      
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+                          <span className="text-lg font-semibold text-gray-900 dark:text-white">{checkin.venue.rating}</span>
+                          <span className="text-gray-500">• {checkin.venue.distance}</span>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-400">{checkin.venue.address}</p>
+                      </div>
+                      
+                      {/* Mini Map */}
+                      <div className="mb-4 rounded-2xl overflow-hidden h-40">
+                        <iframe
+                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${checkin.venue.lng - 0.01}%2C${checkin.venue.lat - 0.006}%2C${checkin.venue.lng + 0.01}%2C${checkin.venue.lat + 0.006}&layer=mapnik&marker=${checkin.venue.lat}%2C${checkin.venue.lng}`}
+                          className="w-full h-full border-0"
                         />
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {checkin.comment && (
-                    <div className="p-3 rounded-xl bg-white dark:bg-gray-800">
-                      <p className="text-gray-700 dark:text-gray-300 italic">"{checkin.comment}"</p>
-                    </div>
+                      </div>
+                    </motion.div>
                   )}
-                </div>
-                
-                {/* Venue Info */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Venue Details</h3>
-                  
-                  <div className="flex items-center gap-2 mb-2">
-                    <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
-                    <span className="text-lg font-semibold text-gray-900 dark:text-white">{checkin.venue.rating}</span>
-                    <span className="text-gray-500">• {checkin.venue.distance}</span>
-                  </div>
-                  
-                  <p className="text-gray-600 dark:text-gray-400">{checkin.venue.address}</p>
-                </div>
+                </AnimatePresence>
                 
                 {/* Actions */}
-                <div className="flex gap-3">
+                <div className="flex gap-3 pt-4 pb-4">
                   <button className="flex-1 h-12 rounded-xl border border-gray-200 dark:border-gray-700 font-medium text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2">
-                    <Heart className="w-5 h-5" />
-                    Save
+                    <Heart className="w-5 h-5" />Save
                   </button>
                   <button className="flex-1 h-12 rounded-xl bg-[#00A8CC] text-white font-medium flex items-center justify-center gap-2">
-                    <Clock className="w-5 h-5" />
-                    Check-in Again
+                    <Clock className="w-5 h-5" />Check-in Again
                   </button>
                 </div>
               </div>
@@ -532,37 +493,17 @@ const CheckinCard = ({ checkin, onClick }) => {
   const categoryColor = categoryColors[checkin.venue.category] || '#6B7280'
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      onClick={onClick}
-      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden mb-4 cursor-pointer hover:shadow-md transition-shadow"
-    >
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} onClick={onClick} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden mb-4 cursor-pointer hover:shadow-md transition-shadow">
       <div className="flex">
-        {/* Photo - Dominant */}
         <div className="relative w-28 h-28 flex-shrink-0">
-          <img 
-            src={checkin.photo || checkin.venue.image} 
-            alt={checkin.venue.name} 
-            className="w-full h-full object-cover"
-          />
-          {/* Small Category Icon Badge */}
-          <div 
-            className="absolute top-2 left-2 w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ backgroundColor: categoryColor }}
-          >
+          <img src={checkin.photos?.[0] || checkin.venue.image} alt={checkin.venue.name} className="w-full h-full object-cover" />
+          <div className="absolute top-2 left-2 w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: categoryColor }}>
             <CategoryIcon className="w-4 h-4 text-white" />
           </div>
         </div>
-
-        {/* Info */}
         <div className="flex-1 p-3 min-w-0">
-          <h3 className="font-bold text-gray-900 dark:text-white truncate">
-            {checkin.venue.name}
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-            {checkin.venue.category} • {checkin.venue.address}
-          </p>
+          <h3 className="font-bold text-gray-900 dark:text-white truncate">{checkin.venue.name}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{checkin.venue.category} • {checkin.venue.address}</p>
           <div className="flex items-center gap-2 mt-1.5">
             <div className="flex items-center gap-0.5">
               <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
@@ -573,18 +514,14 @@ const CheckinCard = ({ checkin, onClick }) => {
               <span className="text-xs">{checkin.time}</span>
             </div>
           </div>
-          {checkin.comment && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 italic mt-1 truncate">
-              "{checkin.comment}"
-            </p>
-          )}
+          {checkin.comment && <p className="text-sm text-gray-500 dark:text-gray-400 italic mt-1 truncate">"{checkin.comment}"</p>}
         </div>
       </div>
     </motion.div>
   )
 }
 
-// Bottom Navigation Component
+// Bottom Navigation
 const BottomNav = ({ active = 'timeline' }) => {
   const navItems = [
     { id: 'home', icon: MessageCircle, label: 'Chats', href: '/chat' },
@@ -601,11 +538,7 @@ const BottomNav = ({ active = 'timeline' }) => {
           const Icon = item.icon
           const isActive = active === item.id
           return (
-            <Link 
-              key={item.id} 
-              href={item.href} 
-              className={`flex flex-col items-center justify-center px-4 py-2 transition-all ${isActive ? 'text-[#00A8CC]' : 'text-gray-400 hover:text-gray-600'}`}
-            >
+            <Link key={item.id} href={item.href} className={`flex flex-col items-center justify-center px-4 py-2 transition-all ${isActive ? 'text-[#00A8CC]' : 'text-gray-400 hover:text-gray-600'}`}>
               <Icon className={`w-6 h-6 ${isActive ? 'stroke-[2.5px]' : ''}`} />
               <span className="text-xs mt-1 font-medium">{item.label}</span>
             </Link>
@@ -618,7 +551,7 @@ const BottomNav = ({ active = 'timeline' }) => {
 
 const TimelinePage = () => {
   const router = useRouter()
-  const { setCurrentVenues } = useVenues()
+  const [viewMode, setViewMode] = useState('list') // 'list' or 'map'
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All Categories')
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
@@ -627,19 +560,17 @@ const TimelinePage = () => {
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [selectedCheckin, setSelectedCheckin] = useState(null)
   const [showCheckinDetail, setShowCheckinDetail] = useState(false)
+  const [selectedMapVenue, setSelectedMapVenue] = useState(null)
 
   const categories = ['All Categories', 'Cafe', 'Restaurant', 'Beach', 'Nature', 'Museum', 'Attraction']
 
   // Filter checkins
-  const filteredCheckins = sampleCheckins.filter(checkin => {
+  const filteredCheckins = realCheckins.filter(checkin => {
     const matchesSearch = searchQuery === '' || 
       checkin.venue.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       checkin.venue.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
       checkin.venue.address.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = selectedCategory === 'All Categories' || 
-      checkin.venue.category === selectedCategory
-    
-    // Date range filter
+    const matchesCategory = selectedCategory === 'All Categories' || checkin.venue.category === selectedCategory
     let matchesDateRange = true
     if (startDate && endDate) {
       matchesDateRange = checkin.date >= startDate && checkin.date <= endDate
@@ -648,12 +579,12 @@ const TimelinePage = () => {
     } else if (endDate) {
       matchesDateRange = checkin.date <= endDate
     }
-    
     return matchesSearch && matchesCategory && matchesDateRange
   })
 
   const groupedCheckins = groupByDate(filteredCheckins)
   const totalPlaces = filteredCheckins.length
+  const mapVenues = filteredCheckins.map(c => c.venue)
 
   const handleCheckinClick = (checkin) => {
     setSelectedCheckin(checkin)
@@ -661,38 +592,35 @@ const TimelinePage = () => {
     if (navigator.vibrate) navigator.vibrate(30)
   }
 
-  const handleShowOnMap = () => {
-    const venues = filteredCheckins.map(c => c.venue)
-    setCurrentVenues(venues)
-    router.push('/explore')
-    if (navigator.vibrate) navigator.vibrate(30)
+  const handleMapVenueSelect = (venue) => {
+    setSelectedMapVenue(venue)
+    // Find the checkin for this venue
+    const checkin = filteredCheckins.find(c => c.venue.id === venue.id)
+    if (checkin) {
+      setSelectedCheckin(checkin)
+    }
   }
 
-  const handleDateRangeSelect = (start, end) => {
-    setStartDate(start)
-    setEndDate(end)
+  const handleMapVenueDeselect = () => {
+    setSelectedMapVenue(null)
+  }
+
+  const handleMapVenueClick = () => {
+    if (selectedCheckin) {
+      setShowCheckinDetail(true)
+    }
   }
 
   const hasDateFilter = startDate || endDate
   const dateFilterLabel = () => {
-    if (startDate && endDate) {
-      return `${formatShortDate(startDate)} - ${formatShortDate(endDate)}`
-    }
-    if (startDate) {
-      return `From ${formatShortDate(startDate)}`
-    }
-    if (endDate) {
-      return `Until ${formatShortDate(endDate)}`
-    }
+    if (startDate && endDate) return `${formatShortDate(startDate)} - ${formatShortDate(endDate)}`
+    if (startDate) return `From ${formatShortDate(startDate)}`
+    if (endDate) return `Until ${formatShortDate(endDate)}`
     return 'Date'
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24"
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
       <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-40 px-4 pt-4 pb-2">
         {/* Title Row */}
@@ -701,60 +629,32 @@ const TimelinePage = () => {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Timeline</h1>
             <p className="text-sm text-gray-500">{totalPlaces} places visited</p>
           </div>
-          <button
-            onClick={handleShowOnMap}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium"
-          >
-            <Map className="w-4 h-4" />
-            <span>Map</span>
+          <button onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium">
+            {viewMode === 'list' ? <><Map className="w-4 h-4" /><span>Map</span></> : <><List className="w-4 h-4" /><span>List</span></>}
           </button>
         </div>
 
         {/* Search Bar */}
         <div className="relative mb-3">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search timeline..."
-            className="w-full h-12 rounded-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 pl-12 pr-4 text-base placeholder:text-gray-400"
-          />
+          <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search timeline..." className="w-full h-12 rounded-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 pl-12 pr-4 text-base placeholder:text-gray-400" />
         </div>
 
         {/* Filters */}
         <div className="flex gap-2">
-          {/* Category Dropdown */}
           <div className="relative flex-1">
-            <button
-              onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-              className="w-full h-11 px-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-between text-gray-700 dark:text-gray-300"
-            >
+            <button onClick={() => setShowCategoryDropdown(!showCategoryDropdown)} className="w-full h-11 px-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-between text-gray-700 dark:text-gray-300">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-gray-400" />
                 <span className="text-sm font-medium">{selectedCategory}</span>
               </div>
               <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
             </button>
-
             <AnimatePresence>
               {showCategoryDropdown && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden z-50"
-                >
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden z-50">
                   {categories.map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => {
-                        setSelectedCategory(cat)
-                        setShowCategoryDropdown(false)
-                      }}
-                      className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                        selectedCategory === cat ? 'bg-[#00A8CC]/10 text-[#00A8CC] font-medium' : 'text-gray-700 dark:text-gray-300'
-                      }`}
-                    >
+                    <button key={cat} onClick={() => { setSelectedCategory(cat); setShowCategoryDropdown(false); }} className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 ${selectedCategory === cat ? 'bg-[#00A8CC]/10 text-[#00A8CC] font-medium' : 'text-gray-700 dark:text-gray-300'}`}>
                       {cat}
                     </button>
                   ))}
@@ -762,114 +662,86 @@ const TimelinePage = () => {
               )}
             </AnimatePresence>
           </div>
-
-          {/* Date Range Button */}
-          <button 
-            onClick={() => setShowDatePicker(true)}
-            className={`h-11 px-4 rounded-xl flex items-center gap-2 font-medium whitespace-nowrap ${
-              hasDateFilter 
-                ? 'bg-[#F97316] text-white' 
-                : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
-            }`}
-          >
+          <button onClick={() => setShowDatePicker(true)} className={`h-11 px-4 rounded-xl flex items-center gap-2 font-medium whitespace-nowrap ${hasDateFilter ? 'bg-[#00A8CC] text-white' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'}`}>
             <Calendar className="w-4 h-4" />
             <span className="text-sm">{dateFilterLabel()}</span>
           </button>
         </div>
       </div>
 
-      {/* Timeline Content */}
-      <div className="px-4 pt-2">
-        {groupedCheckins.length > 0 ? (
-          groupedCheckins.map((group, groupIndex) => (
-            <div key={group.date.toDateString()} className="mb-6">
-              {/* Date Header - Positioned to the right of timeline */}
-              <div className="flex items-center mb-3">
-                <div className="w-3 flex justify-center">
-                  <div className="w-0.5 h-4" style={{ backgroundColor: '#00A8CC' }} />
+      {/* Content */}
+      <AnimatePresence mode="wait">
+        {viewMode === 'list' ? (
+          <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="px-4 pt-2">
+            {groupedCheckins.length > 0 ? (
+              groupedCheckins.map((group, groupIndex) => (
+                <div key={group.date.toDateString()} className="mb-6">
+                  <div className="flex items-center mb-3">
+                    <div className="w-3 flex justify-center"><div className="w-0.5 h-4" style={{ backgroundColor: '#00A8CC' }} /></div>
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white ml-5">{formatDate(group.date)}</h2>
+                  </div>
+                  {group.checkins.map((checkin, index) => (
+                    <div key={checkin.id} className="relative flex">
+                      <div className="w-3 flex flex-col items-center flex-shrink-0">
+                        <div className="w-0.5 h-4 flex-shrink-0" style={{ backgroundColor: '#00A8CC' }} />
+                        <div className="w-3 h-3 rounded-full border-2 border-white z-10 flex-shrink-0" style={{ backgroundColor: '#00A8CC' }} />
+                        <div className="w-0.5 flex-1" style={{ backgroundColor: (index === group.checkins.length - 1 && groupIndex === groupedCheckins.length - 1) ? 'transparent' : '#00A8CC' }} />
+                      </div>
+                      <div className="flex-1 ml-5 pb-0">
+                        <CheckinCard checkin={checkin} onClick={() => handleCheckinClick(checkin)} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white ml-5">
-                  {formatDate(group.date)}
-                </h2>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+                  <Clock className="w-10 h-10 text-gray-300 dark:text-gray-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No check-ins found</h3>
+                <p className="text-gray-500 text-center max-w-xs">{hasDateFilter || selectedCategory !== 'All Categories' ? 'Try adjusting your filters' : 'Start exploring Sydney!'}</p>
               </div>
-
-              {/* Checkins with timeline */}
-              {group.checkins.map((checkin, index) => (
-                <div key={checkin.id} className="relative flex">
-                  {/* Timeline column */}
-                  <div className="w-3 flex flex-col items-center flex-shrink-0">
-                    {/* Line above dot */}
-                    <div className="w-0.5 h-4 flex-shrink-0" style={{ backgroundColor: '#00A8CC' }} />
-                    {/* Dot */}
-                    <div 
-                      className="w-3 h-3 rounded-full border-2 border-white z-10 flex-shrink-0"
-                      style={{ backgroundColor: '#00A8CC' }}
-                    />
-                    {/* Line below dot - extends to next card or ends */}
-                    <div 
-                      className="w-0.5 flex-1" 
-                      style={{ 
-                        backgroundColor: (index === group.checkins.length - 1 && groupIndex === groupedCheckins.length - 1) 
-                          ? 'transparent' 
-                          : '#00A8CC' 
-                      }} 
-                    />
-                  </div>
-                  
-                  {/* Card */}
-                  <div className="flex-1 ml-5 pb-0">
-                    <CheckinCard
-                      checkin={checkin}
-                      onClick={() => handleCheckinClick(checkin)}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ))
-        ) : (
-          <div className="flex flex-col items-center justify-center py-16">
-            <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
-              <Clock className="w-10 h-10 text-gray-300 dark:text-gray-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              No check-ins found
-            </h3>
-            <p className="text-gray-500 text-center max-w-xs">
-              {hasDateFilter || selectedCategory !== 'All Categories' 
-                ? 'Try adjusting your filters'
-                : 'Start exploring Sydney and check in at your favorite places!'}
-            </p>
-            {!hasDateFilter && selectedCategory === 'All Categories' && (
-              <Link 
-                href="/explore"
-                className="mt-4 px-6 py-3 rounded-full bg-[#00A8CC] text-white font-medium"
-              >
-                Explore Sydney
-              </Link>
             )}
-          </div>
+          </motion.div>
+        ) : (
+          <motion.div key="map" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-[calc(100vh-240px)]">
+            <MapComponent 
+              venues={mapVenues} 
+              selectedVenue={selectedMapVenue} 
+              onVenueSelect={handleMapVenueSelect}
+              onVenueDeselect={handleMapVenueDeselect}
+              fitBounds={true}
+            />
+            
+            {/* Selected Venue Card on Map */}
+            <AnimatePresence>
+              {selectedMapVenue && !showCheckinDetail && (
+                <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }} className="fixed left-4 right-4 bottom-24 z-[1002] max-w-lg mx-auto">
+                  <button onClick={handleMapVenueClick} className="w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 text-left">
+                    <div className="flex gap-3 p-3">
+                      <img src={selectedMapVenue.image} alt={selectedMapVenue.name} className="w-24 h-20 rounded-xl object-cover" />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-gray-900 dark:text-white">{selectedMapVenue.name}</h3>
+                        <p className="text-sm text-gray-500">{selectedMapVenue.category} • {selectedMapVenue.distance}</p>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">{selectedMapVenue.rating}</span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400 self-center" />
+                    </div>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
 
-      {/* Bottom Navigation */}
       <BottomNav active="timeline" />
-
-      {/* Date Range Picker Modal */}
-      <DateRangePickerModal
-        isOpen={showDatePicker}
-        onClose={() => setShowDatePicker(false)}
-        startDate={startDate}
-        endDate={endDate}
-        onDateRangeSelect={handleDateRangeSelect}
-      />
-
-      {/* Check-in Detail Sheet */}
-      <CheckinDetailSheet
-        checkin={selectedCheckin}
-        isOpen={showCheckinDetail}
-        onClose={() => setShowCheckinDetail(false)}
-      />
+      <DateRangePickerModal isOpen={showDatePicker} onClose={() => setShowDatePicker(false)} startDate={startDate} endDate={endDate} onDateRangeSelect={(s, e) => { setStartDate(s); setEndDate(e); }} />
+      <CheckinDetailSheet checkin={selectedCheckin} isOpen={showCheckinDetail} onClose={() => setShowCheckinDetail(false)} />
     </motion.div>
   )
 }
