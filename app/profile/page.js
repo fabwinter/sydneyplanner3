@@ -218,6 +218,65 @@ export default function ProfilePage() {
   })
   const [categoryStats, setCategoryStats] = useState({})
   const [unlockedBadges, setUnlockedBadges] = useState([])
+  
+  // Profile editing state
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [profileName, setProfileName] = useState('Sydney Explorer')
+  const [profileLocation, setProfileLocation] = useState('Sydney, NSW')
+  const [tempName, setTempName] = useState('')
+  const [tempLocation, setTempLocation] = useState('')
+
+  // Load saved profile from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedName = localStorage.getItem('profile_name')
+      const savedLocation = localStorage.getItem('profile_location')
+      if (savedName) setProfileName(savedName)
+      if (savedLocation) setProfileLocation(savedLocation)
+    }
+  }, [])
+
+  const handleEditProfile = () => {
+    setTempName(profileName)
+    setTempLocation(profileLocation)
+    setIsEditingProfile(true)
+  }
+
+  const handleSaveProfile = () => {
+    setProfileName(tempName)
+    setProfileLocation(tempLocation)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('profile_name', tempName)
+      localStorage.setItem('profile_location', tempLocation)
+    }
+    setIsEditingProfile(false)
+    toast.success('Profile updated!')
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditingProfile(false)
+  }
+
+  // Delete check-in
+  const deleteCheckin = async (checkinId) => {
+    try {
+      const response = await fetch(`/api/checkins/${checkinId}`, {
+        method: 'DELETE'
+      })
+      const data = await response.json()
+      
+      if (data.success) {
+        toast.success('Check-in deleted')
+        // Remove from local state and recalculate
+        setCheckins(prev => prev.filter(c => c.id !== checkinId))
+      } else {
+        toast.error(data.error || 'Failed to delete check-in')
+      }
+    } catch (error) {
+      console.error('Error deleting check-in:', error)
+      toast.error('Failed to delete check-in')
+    }
+  }
 
   // Fetch user data
   const fetchUserData = useCallback(async () => {
@@ -231,7 +290,7 @@ export default function ProfilePage() {
       const savesRes = await fetch('/api/saves?user_id=anonymous')
       const savesData = await savesRes.json()
       
-      const userCheckins = checkinsData.checkins || []
+      const userCheckins = (checkinsData.checkins || []).filter(c => c.venue_name && c.venue_category)
       const userSaves = savesData.saves || []
       
       setCheckins(userCheckins)
