@@ -495,10 +495,21 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain }) => {
                 
                 {/* Actions */}
                 <div className="flex gap-3 pt-4 pb-4">
-                  <button className="flex-1 h-12 rounded-xl border border-gray-200 dark:border-gray-700 font-medium text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2">
-                    <Heart className="w-5 h-5" />Save
+                  <button 
+                    onClick={handleSave}
+                    className={`flex-1 h-12 rounded-xl border font-medium flex items-center justify-center gap-2 transition-all ${
+                      saved 
+                        ? 'bg-red-50 border-red-200 text-red-500' 
+                        : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    <Heart className={`w-5 h-5 ${saved ? 'fill-current' : ''}`} />
+                    {saved ? 'Saved' : 'Save'}
                   </button>
-                  <button className="flex-1 h-12 rounded-xl bg-[#00A8CC] text-white font-medium flex items-center justify-center gap-2">
+                  <button 
+                    onClick={handleCheckInAgain}
+                    className="flex-1 h-12 rounded-xl bg-[#00A8CC] text-white font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                  >
                     <Clock className="w-5 h-5" />Check-in Again
                   </button>
                 </div>
