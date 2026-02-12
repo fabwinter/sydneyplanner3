@@ -6,7 +6,7 @@ import {
   Search, Star, Clock, Filter, Calendar, ChevronDown, ChevronLeft, ChevronRight,
   MessageCircle, User, Map, Heart, Coffee, Umbrella, Building2,
   TreePine, Landmark, Sparkles, UtensilsCrossed, X, ArrowRight, List, Loader2, Navigation,
-  MapPin, Phone, Globe, Share2, Bookmark, Camera, Image as ImageIcon, Plus, RefreshCw
+  MapPin, Phone, Globe, Share2, Bookmark, Camera, Image as ImageIcon, Plus, RefreshCw, Trash2
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
