@@ -162,10 +162,10 @@ const ChatPage = () => {
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: -50, opacity: 0 }}
       transition={{ type: 'tween', duration: 0.25, ease: 'easeOut' }}
-      className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-32"
+      className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-36"
     >
       {chatMessages.length === 0 ? (
-        <div className="flex flex-col items-center justify-center min-h-[80vh] px-6">
+        <div className="flex flex-col items-center justify-center min-h-[75vh] px-6">
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="mb-8">
             <div className="relative w-48 h-32">
               <div className="absolute inset-0 flex items-end justify-center">
@@ -237,29 +237,39 @@ const ChatPage = () => {
             
             <div ref={messagesEndRef} />
           </div>
-
-          {hasVenues && !isLoading && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center pb-6">
-              <button onClick={handleOpenMap} className="flex items-center gap-2 px-6 py-3 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-lg hover:shadow-xl transition-all active:scale-95">
-                <Map className="w-5 h-5" />
-                <span className="font-medium">Map</span>
-              </button>
-            </motion.div>
-          )}
         </div>
       )}
 
-      <div className="fixed bottom-16 left-0 right-0 z-40 p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
-        <div className="max-w-lg mx-auto">
-          <div className="flex items-center gap-3">
-            <button className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors shrink-0">
-              <Plus className="w-5 h-5" />
-            </button>
-            <div className="flex-1 relative">
-              <Input value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSend()} placeholder="Ask anything..." className="w-full h-11 rounded-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 pl-4 pr-12 text-base placeholder:text-gray-400" />
-              <button onClick={() => handleSend()} disabled={!input.trim() || isLoading} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-[#00A8CC] disabled:opacity-50 transition-colors">
-                <Send className="w-5 h-5" />
+      {/* Bottom Controls */}
+      <div className="fixed bottom-16 left-0 right-0 z-40">
+        {/* Map Button - smaller, just above input */}
+        {hasVenues && !isLoading && (
+          <div className="flex justify-center mb-2">
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              onClick={handleOpenMap}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#00A8CC] text-white text-sm font-medium shadow-md hover:shadow-lg transition-all active:scale-95"
+            >
+              <Map className="w-4 h-4" />
+              <span>Map</span>
+            </motion.button>
+          </div>
+        )}
+
+        {/* Input Area */}
+        <div className="px-4 pb-4 bg-gray-50 dark:bg-gray-900">
+          <div className="max-w-lg mx-auto">
+            <div className="flex items-center gap-3">
+              <button className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors shrink-0">
+                <Plus className="w-5 h-5" />
               </button>
+              <div className="flex-1 relative">
+                <Input value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSend()} placeholder="Ask anything..." className="w-full h-11 rounded-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 pl-4 pr-12 text-base placeholder:text-gray-400" />
+                <button onClick={() => handleSend()} disabled={!input.trim() || isLoading} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-[#00A8CC] disabled:opacity-50 transition-colors">
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
