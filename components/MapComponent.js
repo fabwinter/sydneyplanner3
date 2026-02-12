@@ -1,10 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Star } from 'lucide-react'
 
 // Custom marker icon
 const createCustomIcon = (isSelected = false) => {
@@ -22,7 +21,6 @@ const createCustomIcon = (isSelected = false) => {
     `,
     iconSize: [40, 40],
     iconAnchor: [20, 40],
-    popupAnchor: [0, -40]
   })
 }
 
@@ -144,12 +142,10 @@ const MapComponent = ({
         <Marker 
           position={[userLocation.lat, userLocation.lng]} 
           icon={userLocationIcon}
-        >
-          <Popup>You are here</Popup>
-        </Marker>
+        />
       )}
       
-      {/* Venue markers */}
+      {/* Venue markers - NO popup, just select on click */}
       {venues.map((venue) => (
         <Marker
           key={venue.id}
@@ -158,23 +154,7 @@ const MapComponent = ({
           eventHandlers={{
             click: () => onVenueSelect(venue)
           }}
-        >
-          <Popup className="custom-popup">
-            <div className="p-1 min-w-[180px]">
-              <img 
-                src={venue.image} 
-                alt={venue.name}
-                className="w-full h-20 object-cover rounded-lg mb-2"
-              />
-              <h3 className="font-semibold text-gray-900 text-sm">{venue.name}</h3>
-              <p className="text-xs text-gray-500">{venue.category}</p>
-              <div className="flex items-center gap-1 mt-1">
-                <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                <span className="text-xs font-medium">{venue.rating}</span>
-              </div>
-            </div>
-          </Popup>
-        </Marker>
+        />
       ))}
     </MapContainer>
   )
