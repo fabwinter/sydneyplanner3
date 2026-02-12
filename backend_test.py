@@ -11,7 +11,7 @@ import os
 from urllib.parse import urljoin
 
 # Get base URL from environment
-BASE_URL = "https://ai-chat-map-demo.preview.emergentagent.com"
+BASE_URL = "https://explore-sydney.preview.emergentagent.com"
 API_BASE = f"{BASE_URL}/api"
 
 def test_root_endpoints():
