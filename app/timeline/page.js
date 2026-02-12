@@ -743,11 +743,12 @@ const TimelinePage = () => {
     return 'Date'
   }
 
-  // Show loading state during hydration
-  if (!isClient) {
+  // Show loading state during hydration or data fetch
+  if (!isClient || isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#00A8CC]" />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-[#00A8CC] mb-4" />
+        <p className="text-gray-500">Loading your timeline...</p>
       </div>
     )
   }
@@ -761,9 +762,18 @@ const TimelinePage = () => {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Timeline</h1>
             <p className="text-sm text-gray-500">{totalPlaces} places visited</p>
           </div>
-          <button onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium">
-            {viewMode === 'list' ? <><Map className="w-4 h-4" /><span>Map</span></> : <><List className="w-4 h-4" /><span>List</span></>}
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => fetchCheckins(true)} 
+              disabled={isRefreshing}
+              className="w-10 h-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-center"
+            >
+              <RefreshCw className={`w-5 h-5 text-gray-500 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <button onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium">
+              {viewMode === 'list' ? <><Map className="w-4 h-4" /><span>Map</span></> : <><List className="w-4 h-4" /><span>List</span></>}
+            </button>
+          </div>
         </div>
 
         <div className="relative mb-3">
