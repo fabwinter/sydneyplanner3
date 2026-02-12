@@ -591,6 +591,8 @@ const TimelinePage = () => {
   const [selectedCheckin, setSelectedCheckin] = useState(null)
   const [showCheckinDetail, setShowCheckinDetail] = useState(false)
   const [selectedMapVenue, setSelectedMapVenue] = useState(null)
+  const [showCheckInModal, setShowCheckInModal] = useState(false)
+  const [checkInVenue, setCheckInVenue] = useState(null)
 
   const categories = ['All Categories', 'Cafe', 'Restaurant', 'Beach', 'Nature', 'Museum', 'Attraction']
 
