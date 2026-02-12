@@ -210,11 +210,14 @@ backend:
     file: "/app/app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented POST /api/saves - toggle save/unsave venues. Uses MongoDB for storage."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: POST /api/saves working perfectly. Tested 3 scenarios: (1) Save venue successfully with proper response ✅ (2) Toggle functionality - unsave same venue returns 'removed' action ✅ (3) Proper 400 validation for missing venue_id ✅. All responses return proper JSON with success, action (saved/removed), message fields."
 
   - task: "Saves API (GET)"
     implemented: true
