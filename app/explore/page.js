@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence, useMotionValue, useTransform, useDragControls } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Search, MapPin, Star, Heart, ChevronRight, ChevronDown, ChevronUp,
   Clock, MessageCircle, User, Map, Loader2, Navigation, RotateCcw,
-  X, Share2, Check, Phone, Globe, Wifi, Car, Accessibility, UtensilsCrossed, PawPrint
+  X, Share2, Check, Phone, Globe, Wifi, Car, Accessibility, UtensilsCrossed, 
+  PawPrint, ExternalLink, ListPlus, ChevronLeft
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
@@ -22,6 +23,37 @@ const MapComponent = dynamic(() => import('@/components/MapComponent'), {
     </div>
   )
 })
+
+// Static map preview component
+const StaticMapPreview = ({ lat, lng, name }) => {
+  // Using OpenStreetMap static image via a tile server
+  const zoom = 15
+  const mapUrl = `https://maps.geoapify.com/v1/staticmap?style=osm-bright&width=600&height=300&center=lonlat:${lng},${lat}&zoom=${zoom}&marker=lonlat:${lng},${lat};color:%2300A8CC;size:medium&apiKey=demo`
+  
+  return (
+    <div className="relative w-full h-40 rounded-xl overflow-hidden bg-gray-200">
+      <img 
+        src={`https://api.mapbox.com/styles/v1/mapbox/light-v11/static/pin-l+00A8CC(${lng},${lat})/${lng},${lat},14,0/400x200@2x?access_token=pk.eyJ1IjoicGxhY2Vob2xkZXIiLCJhIjoiY2xhc3NpYyJ9.demo`}
+        alt="Map"
+        className="w-full h-full object-cover"
+        onError={(e) => {
+          // Fallback to a simple map placeholder
+          e.target.src = `https://www.openstreetmap.org/export/embed.html?bbox=${lng-0.01},${lat-0.01},${lng+0.01},${lat+0.01}&layer=mapnik&marker=${lat},${lng}`
+        }}
+      />
+      {/* Map overlay with location pin */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full bg-[#00A8CC] flex items-center justify-center shadow-lg">
+          <MapPin className="w-5 h-5 text-white" />
+        </div>
+      </div>
+      {/* Gradient overlay at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-3">
+        <p className="text-white text-sm font-medium truncate">{name}</p>
+      </div>
+    </div>
+  )
+}
 
 // Venue Detail Sheet Component
 const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
@@ -60,6 +92,29 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
     toast.success(`Checked in at ${venue.name}!`)
   }
 
+  const handleGetDirections = () => {
+    if (navigator.vibrate) navigator.vibrate(30)
+    const destination = `${venue.lat},${venue.lng}`
+    const label = encodeURIComponent(venue.name)
+    
+    // Check if iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    
+    if (isIOS) {
+      // Open Apple Maps
+      window.open(`maps://maps.apple.com/?daddr=${destination}&q=${label}`, '_blank')
+    } else {
+      // Open Google Maps
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}&destination_place_id=${label}`, '_blank')
+    }
+  }
+
+  const handleViewOnMap = () => {
+    if (navigator.vibrate) navigator.vibrate(30)
+    const destination = `${venue.lat},${venue.lng}`
+    window.open(`https://www.google.com/maps/search/?api=1&query=${destination}`, '_blank')
+  }
+
   const amenities = [
     { icon: Car, label: 'Parking', available: true },
     { icon: Wifi, label: 'WiFi', available: true },
@@ -67,6 +122,23 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
     { icon: UtensilsCrossed, label: 'Outdoor', available: false },
     { icon: PawPrint, label: 'Pet Friendly', available: true },
   ]
+
+  // Generate random opening hours for demo
+  const openingHours = {
+    status: 'Open Now',
+    closes: '5:00 PM',
+    hours: [
+      { day: 'Monday', time: '7:00 AM - 5:00 PM' },
+      { day: 'Tuesday', time: '7:00 AM - 5:00 PM' },
+      { day: 'Wednesday', time: '7:00 AM - 5:00 PM' },
+      { day: 'Thursday', time: '7:00 AM - 5:00 PM' },
+      { day: 'Friday', time: '7:00 AM - 6:00 PM' },
+      { day: 'Saturday', time: '8:00 AM - 6:00 PM' },
+      { day: 'Sunday', time: '8:00 AM - 4:00 PM' },
+    ]
+  }
+
+  const phoneNumber = '02 9834 6321'
 
   return (
     <AnimatePresence>
@@ -87,7 +159,7 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl z-[2001] max-h-[90vh] overflow-hidden"
+            className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl z-[2001] max-h-[92vh] overflow-hidden"
           >
             {/* Drag Handle */}
             <div className="flex justify-center pt-3 pb-2">
@@ -95,9 +167,9 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
             </div>
 
             {/* Content */}
-            <div className="overflow-y-auto max-h-[calc(90vh-100px)] pb-24">
+            <div className="overflow-y-auto max-h-[calc(92vh-120px)] pb-28">
               {/* Hero Image */}
-              <div className="relative h-56">
+              <div className="relative h-52">
                 <img 
                   src={venue.image} 
                   alt={venue.name}
@@ -109,7 +181,7 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
                 >
                   <ChevronDown className="w-6 h-6 text-gray-700" />
                 </button>
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
                   <span className="text-[#00A8CC] text-sm font-medium">{venue.category}</span>
                   <h2 className="text-2xl font-bold text-white">{venue.name}</h2>
                 </div>
@@ -128,24 +200,28 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
 
                 {/* Quick Info Cards */}
                 <div className="grid grid-cols-3 gap-3 mb-6">
-                  <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-center">
+                  <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
                     <MapPin className="w-5 h-5 mx-auto mb-1 text-gray-500" />
-                    <p className="text-xs text-gray-500 truncate">{venue.address?.split(',')[0] || 'Sydney'}</p>
+                    <p className="text-xs text-gray-500 text-center truncate">Sydney, NSW...</p>
                   </div>
-                  <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-center">
+                  <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
                     <Clock className="w-5 h-5 mx-auto mb-1 text-[#00A8CC]" />
-                    <p className="text-xs text-[#00A8CC] font-medium">Open Now</p>
+                    <p className="text-xs text-[#00A8CC] font-medium text-center">{openingHours.status}</p>
+                    <p className="text-[10px] text-gray-400 text-center">Closes at {openingHours.closes}</p>
                   </div>
-                  <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-center">
+                  <a href={`tel:${phoneNumber}`} className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800 block">
                     <Phone className="w-5 h-5 mx-auto mb-1 text-gray-500" />
-                    <p className="text-xs text-gray-500">Call</p>
-                  </div>
+                    <p className="text-xs text-gray-500 text-center">Call</p>
+                    <p className="text-[10px] text-gray-400 text-center truncate">{phoneNumber}</p>
+                  </a>
                 </div>
 
                 {/* About */}
                 <div className="mb-6">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">About</h3>
-                  <p className="text-gray-600 dark:text-gray-400">{venue.description || `${venue.category} in Sydney`}</p>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {venue.description || `${venue.category} in The Rocks, Sydney. A stunning destination with artisan offerings and a welcoming atmosphere.`}
+                  </p>
                 </div>
 
                 {/* Amenities */}
@@ -157,10 +233,10 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
                       return (
                         <div 
                           key={idx}
-                          className={`flex flex-col items-center min-w-[70px] p-3 rounded-xl ${
+                          className={`flex flex-col items-center min-w-[70px] p-3 rounded-xl border ${
                             amenity.available 
-                              ? 'bg-gray-100 dark:bg-gray-800' 
-                              : 'bg-gray-50 dark:bg-gray-800/50 opacity-50'
+                              ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700' 
+                              : 'bg-gray-50/50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-800 opacity-40'
                           }`}
                         >
                           <Icon className={`w-6 h-6 mb-1 ${amenity.available ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400'}`} />
@@ -171,11 +247,74 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
                   </div>
                 </div>
 
-                {/* Distance */}
-                <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800">
-                  <div className="flex items-center gap-2">
-                    <Navigation className="w-5 h-5 text-[#00A8CC]" />
-                    <span className="text-gray-700 dark:text-gray-300">{venue.distance} from your location</span>
+                {/* Location Section */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Location</h3>
+                  
+                  {/* Full Address */}
+                  <div className="flex items-start gap-3 mb-4">
+                    <MapPin className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+                    <p className="text-gray-600 dark:text-gray-400">
+                      {venue.address || '7A/2 Huntley St, Alexandria NSW 2015, Australia'}
+                    </p>
+                  </div>
+
+                  {/* Map Preview with Get Directions */}
+                  <div className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+                    {/* Static Map Image */}
+                    <div className="relative h-44 bg-gray-100 dark:bg-gray-800">
+                      <iframe
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${venue.lng - 0.008}%2C${venue.lat - 0.005}%2C${venue.lng + 0.008}%2C${venue.lat + 0.005}&layer=mapnik&marker=${venue.lat}%2C${venue.lng}`}
+                        className="w-full h-full border-0"
+                        style={{ pointerEvents: 'none' }}
+                      />
+                      {/* Overlay to make it non-interactive */}
+                      <div className="absolute inset-0" />
+                    </div>
+                    
+                    {/* Get Directions Button */}
+                    <button
+                      onClick={handleGetDirections}
+                      className="absolute top-3 left-3 flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-gray-800 shadow-md text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+                    >
+                      <span>Get directions</span>
+                      <ExternalLink className="w-4 h-4" />
+                    </button>
+
+                    {/* View on Map Button */}
+                    <button
+                      onClick={handleViewOnMap}
+                      className="absolute bottom-3 left-3 flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm"
+                    >
+                      <Navigation className="w-4 h-4 text-[#00A8CC]" />
+                      <span className="font-medium">View on map</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Reviews Section */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Reviews</h3>
+                    <button className="flex items-center gap-1 text-[#00A8CC] text-sm font-medium">
+                      View all <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="p-6 rounded-xl bg-gray-50 dark:bg-gray-800 text-center">
+                    <p className="text-gray-500">No reviews yet. Be the first to review!</p>
+                  </div>
+                </div>
+
+                {/* Distance Info */}
+                <div className="p-4 rounded-xl bg-[#00A8CC]/10 border border-[#00A8CC]/20">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#00A8CC] flex items-center justify-center">
+                      <Navigation className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">{venue.distance} away</p>
+                      <p className="text-sm text-gray-500">from your location</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -186,7 +325,7 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleSave}
-                  className={`w-12 h-12 rounded-xl border flex items-center justify-center transition-all ${
+                  className={`w-14 h-12 rounded-xl border flex items-center justify-center transition-all ${
                     saved 
                       ? 'bg-red-50 border-red-200 text-red-500' 
                       : 'border-gray-200 dark:border-gray-700 text-gray-500'
@@ -195,8 +334,13 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
                   <Heart className={`w-5 h-5 ${saved ? 'fill-current' : ''}`} />
                 </button>
                 <button
+                  className="w-14 h-12 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500"
+                >
+                  <ListPlus className="w-5 h-5" />
+                </button>
+                <button
                   onClick={handleShare}
-                  className="w-12 h-12 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500"
+                  className="w-14 h-12 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500"
                 >
                   <Share2 className="w-5 h-5" />
                 </button>
@@ -388,7 +532,7 @@ const ExplorePage = () => {
         )}
       </AnimatePresence>
 
-      {/* Selected Venue Preview - Simple card at bottom */}
+      {/* Selected Venue Preview */}
       <AnimatePresence>
         {selectedVenue && !showVenueDetail && (
           <motion.div
@@ -425,7 +569,7 @@ const ExplorePage = () => {
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         className="fixed bottom-0 left-0 right-0 z-[1000]"
       >
-        {/* Pull Tab to show/hide nav */}
+        {/* Pull Tab */}
         <div className="flex justify-center -mb-1">
           <button
             onClick={toggleNav}
