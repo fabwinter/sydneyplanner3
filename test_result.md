@@ -320,7 +320,12 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Check-ins API (POST)"
+    - "Check-ins API (GET)"
+    - "Saves API (POST)"
+    - "Saves API (GET)"
+    - "Photo Upload API"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -330,3 +335,5 @@ agent_communication:
     message: "Implemented Sydney Planner MVP with Hero page and AI Chat. Backend has 4 endpoints: root, chat, venues, search. Frontend has hero landing and chat page with bottom nav. Using Emergent LLM key for AI responses. Please test all backend endpoints."
   - agent: "testing"
     message: "✅ BACKEND TESTING COMPLETE: All 4 backend API endpoints are working correctly. Tested 9 scenarios including error handling. AI Chat integration with Emergent LLM working, venue filtering working, all endpoints returning proper JSON responses with correct status codes. Created backend_test.py for comprehensive API testing. No critical issues found."
+  - agent: "main"
+    message: "Added new features: (1) Timeline page now fetches REAL check-in data from /api/checkins endpoint instead of mock data, (2) Photo upload functionality added to CheckInModalSimple with /api/upload endpoint, (3) Profile page created with user stats, achievements, badges, and settings. All features manually tested and verified via screenshots. Please test the new backend endpoints: POST/GET /api/checkins, POST/GET /api/saves, POST /api/upload."
