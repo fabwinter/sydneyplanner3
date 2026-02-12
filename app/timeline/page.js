@@ -839,8 +839,20 @@ const TimelinePage = () => {
                 <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
                   <Clock className="w-10 h-10 text-gray-300 dark:text-gray-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No check-ins found</h3>
-                <p className="text-gray-500 text-center max-w-xs">{hasDateFilter || selectedCategory !== 'All Categories' ? 'Try adjusting your filters' : 'Start exploring Sydney!'}</p>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  {hasDateFilter || selectedCategory !== 'All Categories' ? 'No check-ins found' : 'No check-ins yet'}
+                </h3>
+                <p className="text-gray-500 text-center max-w-xs mb-4">
+                  {hasDateFilter || selectedCategory !== 'All Categories' 
+                    ? 'Try adjusting your filters' 
+                    : 'Start exploring Sydney and check in to your favorite places!'}
+                </p>
+                {!hasDateFilter && selectedCategory === 'All Categories' && (
+                  <Link href="/explore" className="px-6 py-3 rounded-xl bg-[#00A8CC] text-white font-medium flex items-center gap-2">
+                    <Map className="w-5 h-5" />
+                    Explore Sydney
+                  </Link>
+                )}
               </div>
             )}
           </motion.div>
