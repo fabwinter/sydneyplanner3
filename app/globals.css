@@ -125,3 +125,42 @@
     min-width: 44px;
   }
 }
+
+/* Custom venue markers */
+.custom-venue-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.custom-venue-marker > div {
+  pointer-events: auto;
+}
+
+/* User location pulse animation */
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Leaflet map fixes */
+.leaflet-container {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.leaflet-marker-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Fix for marker z-index on selection */
+.leaflet-marker-icon:hover {
+  z-index: 1000 !important;
+}
+
+/* Prevent text selection on markers */
+.leaflet-marker-icon * {
+  user-select: none;
+  -webkit-user-select: none;
+}
