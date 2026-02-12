@@ -188,9 +188,10 @@ const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRange
 }
 
 // Enhanced Check-in Detail Sheet with Full Venue Info
-const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain }) => {
+const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain, onDelete }) => {
   const [activeTab, setActiveTab] = useState('checkin')
   const [saved, setSaved] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   
   if (!checkin || !isOpen) return null
   
@@ -224,6 +225,13 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain }) => {
   const handleDirections = () => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${checkin.venue.lat},${checkin.venue.lng}`
     window.open(url, '_blank')
+  }
+
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(checkin.id)
+    }
+    setShowDeleteConfirm(false)
   }
 
   return (
