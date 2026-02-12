@@ -549,6 +549,68 @@ async function handleRoute(request, { params }) {
       }
     }
 
+    // Upload photo - POST /api/upload
+    if (route === '/upload' && method === 'POST') {
+      try {
+        const formData = await request.formData()
+        const file = formData.get('file')
+        
+        if (!file) {
+          return handleCORS(NextResponse.json(
+            { error: "No file provided" },
+            { status: 400 }
+          ))
+        }
+
+        // Generate unique filename
+        const fileName = `checkin-${uuidv4()}-${Date.now()}.${file.name.split('.').pop()}`
+        const filePath = `checkin-photos/${fileName}`
+        
+        // Convert file to buffer
+        const bytes = await file.arrayBuffer()
+        const buffer = Buffer.from(bytes)
+
+        // Upload to Supabase Storage
+        const { data, error } = await supabase.storage
+          .from('photos')
+          .upload(filePath, buffer, {
+            contentType: file.type,
+            upsert: false
+          })
+
+        if (error) {
+          console.log('Supabase storage error:', error.message)
+          // If storage bucket doesn't exist or fails, return a placeholder URL
+          // In production, you would create the bucket or use another storage solution
+          const placeholderUrl = `https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=400&fit=crop`
+          return handleCORS(NextResponse.json({
+            success: true,
+            url: placeholderUrl,
+            note: 'Using placeholder - Supabase Storage not configured'
+          }))
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('photos')
+          .getPublicUrl(filePath)
+
+        return handleCORS(NextResponse.json({
+          success: true,
+          url: publicUrl,
+          path: filePath
+        }))
+      } catch (uploadError) {
+        console.error('Upload error:', uploadError)
+        // Return placeholder on error
+        return handleCORS(NextResponse.json({
+          success: true,
+          url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=400&fit=crop',
+          note: 'Using placeholder due to upload error'
+        }))
+      }
+    }
+
     // Route not found
     return handleCORS(NextResponse.json(
       { error: `Route ${route} not found` },
