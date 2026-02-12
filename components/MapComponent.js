@@ -9,112 +9,105 @@ import 'leaflet/dist/leaflet.css'
 const categoryConfig = {
   'Cafe': { 
     color: '#F97316', // orange
-    bgColor: '#FED7AA',
-    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>`
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>`
   },
   'Restaurant': { 
     color: '#F97316', // orange
-    bgColor: '#FED7AA',
-    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>`
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>`
   },
   'Beach': { 
     color: '#0EA5E9', // blue
-    bgColor: '#BAE6FD',
-    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5"><path d="M2 12a5 5 0 0 0 5 5 8 8 0 0 1 5 2 8 8 0 0 1 5-2 5 5 0 0 0 5-5V7h-5a8 8 0 0 0-5 2 8 8 0 0 0-5-2H2Z"/><path d="M6 11V7c0-1.1.9-2 2-2h8a2 2 0 0 1 2 2v4"/></svg>`
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5"><path d="M2 12a5 5 0 0 0 5 5 8 8 0 0 1 5 2 8 8 0 0 1 5-2 5 5 0 0 0 5-5V7h-5a8 8 0 0 0-5 2 8 8 0 0 0-5-2H2Z"/><path d="M6 11V7c0-1.1.9-2 2-2h8a2 2 0 0 1 2 2v4"/></svg>`
   },
   'Nature': { 
     color: '#22C55E', // green
-    bgColor: '#BBF7D0',
-    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5"><path d="M12 22v-8"/><path d="M9 22h6"/><path d="M12 13c-1.81-.4-3.08-2.08-3-3.94C9.07 6.25 11.32 4 14 4c2.76 0 5 2.24 5 5 0 2.63-2.06 4.84-4.75 5"/><path d="M5 17c1.19-.24 2.11-.92 2.66-1.83C8.22 14.26 9 13 9 11a4 4 0 0 0-4-4c-2.21 0-4 1.79-4 4 0 2.12 1.67 3.9 3.81 4"/></svg>`
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5"><path d="M12 22v-8"/><path d="M9 22h6"/><path d="M12 13c-1.81-.4-3.08-2.08-3-3.94C9.07 6.25 11.32 4 14 4c2.76 0 5 2.24 5 5 0 2.63-2.06 4.84-4.75 5"/><path d="M5 17c1.19-.24 2.11-.92 2.66-1.83C8.22 14.26 9 13 9 11a4 4 0 0 0-4-4c-2.21 0-4 1.79-4 4 0 2.12 1.67 3.9 3.81 4"/></svg>`
   },
   'Museum': { 
     color: '#8B5CF6', // purple
-    bgColor: '#DDD6FE',
-    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5"><path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M12 2 3 9h18Z"/></svg>`
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5"><path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M12 2 3 9h18Z"/></svg>`
   },
   'Attraction': { 
     color: '#EC4899', // pink
-    bgColor: '#FBCFE8',
-    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
   }
 }
 
 // Default config for unknown categories
 const defaultConfig = {
   color: '#6B7280', // gray
-  bgColor: '#E5E7EB',
-  icon: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`
+  icon: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`
 }
 
-// Create custom venue marker with category icon, name and rating
+// Create custom venue marker - simplified with name above pin
 const createVenueIcon = (venue, isSelected = false) => {
   const config = categoryConfig[venue.category] || defaultConfig
-  const scale = isSelected ? 1.1 : 1
+  const scale = isSelected ? 1.15 : 1
   
   return L.divIcon({
     className: 'custom-venue-marker',
     html: `
-      <div style="transform: scale(${scale}); transform-origin: bottom center; transition: transform 0.2s ease;">
-        <div style="display: flex; align-items: center; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">
-          <!-- Rating Badge -->
-          <div style="
-            display: flex;
-            align-items: center;
-            gap: 2px;
-            background: ${config.color};
-            padding: 4px 8px;
-            border-radius: 16px;
-            min-height: 28px;
-          ">
-            <span style="display: flex; align-items: center; justify-content: center;">
-              ${config.icon}
-            </span>
-            <span style="
-              color: white;
-              font-size: 11px;
-              font-weight: 700;
-              margin-left: 2px;
-            ">${venue.rating}</span>
-          </div>
-          <!-- Venue Name -->
-          <div style="
-            background: white;
-            padding: 4px 10px 4px 8px;
-            border-radius: 0 16px 16px 0;
-            margin-left: -8px;
-            border: 2px solid ${config.color};
-            border-left: none;
-            max-width: 140px;
-          ">
-            <div style="
-              font-size: 12px;
-              font-weight: 600;
-              color: ${config.color};
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
-            ">${venue.name}</div>
-            <div style="
-              font-size: 10px;
-              color: #6B7280;
-              white-space: nowrap;
-            ">${venue.category}</div>
-          </div>
+      <div style="
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        transform: scale(${scale});
+        transform-origin: bottom center;
+        transition: transform 0.2s ease;
+      ">
+        <!-- Venue Name Above -->
+        <div style="
+          font-size: 11px;
+          font-weight: 700;
+          color: ${config.color};
+          text-shadow: 
+            -1px -1px 0 white,
+            1px -1px 0 white,
+            -1px 1px 0 white,
+            1px 1px 0 white,
+            0 0 4px white;
+          white-space: nowrap;
+          margin-bottom: 2px;
+          max-width: 100px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          text-align: center;
+        ">${venue.name}</div>
+        
+        <!-- Icon Badge with Rating -->
+        <div style="
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          background: ${config.color};
+          padding: 4px 8px;
+          border-radius: 16px;
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+        ">
+          <span style="display: flex; align-items: center; justify-content: center;">
+            ${config.icon}
+          </span>
+          <span style="
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            margin-left: 1px;
+          ">${venue.rating}</span>
         </div>
+        
         <!-- Pointer Triangle -->
         <div style="
           width: 0;
           height: 0;
-          border-left: 8px solid transparent;
-          border-right: 8px solid transparent;
-          border-top: 10px solid ${config.color};
-          margin-left: 12px;
-          margin-top: -2px;
+          border-left: 6px solid transparent;
+          border-right: 6px solid transparent;
+          border-top: 8px solid ${config.color};
+          margin-top: -1px;
         "></div>
       </div>
     `,
-    iconSize: [160, 55],
-    iconAnchor: [20, 55],
+    iconSize: [100, 70],
+    iconAnchor: [50, 70],
   })
 }
 
