@@ -225,11 +225,14 @@ backend:
     file: "/app/app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented GET /api/saves - returns user's saved venues sorted by created_at desc."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: GET /api/saves?user_id=anonymous working perfectly. Returns proper JSON with saves array, total count. Successfully retrieved saved venues and verified previously saved venue appears in the list. Toggle functionality confirmed working."
 
   - task: "Photo Upload API"
     implemented: true
