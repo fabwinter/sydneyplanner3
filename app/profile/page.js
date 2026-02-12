@@ -408,11 +408,36 @@ export default function ProfilePage() {
 
         {/* Name and Location */}
         <div className="mb-4">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Sydney Explorer</h1>
-          <div className="flex items-center gap-2 text-gray-500 text-sm">
-            <MapPin className="w-4 h-4" />
-            <span>Sydney, NSW</span>
-          </div>
+          {isEditingProfile ? (
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Display Name</label>
+                <Input
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  placeholder="Your name"
+                  className="h-11"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Location</label>
+                <Input
+                  value={tempLocation}
+                  onChange={(e) => setTempLocation(e.target.value)}
+                  placeholder="City, State"
+                  className="h-11"
+                />
+              </div>
+            </div>
+          ) : (
+            <>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">{profileName}</h1>
+              <div className="flex items-center gap-2 text-gray-500 text-sm">
+                <MapPin className="w-4 h-4" />
+                <span>{profileLocation}</span>
+              </div>
+            </>
+          )}
           <div className="flex items-center gap-2 mt-1">
             <Zap className="w-4 h-4 text-amber-500" />
             <span className="text-amber-500 font-semibold">{stats.points} points</span>
@@ -420,10 +445,32 @@ export default function ProfilePage() {
         </div>
 
         {/* Edit Profile Button */}
-        <button className="w-full h-11 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-medium flex items-center justify-center gap-2">
-          <Edit3 className="w-4 h-4" />
-          Edit Profile
-        </button>
+        {isEditingProfile ? (
+          <div className="flex gap-2">
+            <button 
+              onClick={handleCancelEdit}
+              className="flex-1 h-11 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium flex items-center justify-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              Cancel
+            </button>
+            <button 
+              onClick={handleSaveProfile}
+              className="flex-1 h-11 rounded-xl bg-[#00A8CC] text-white font-medium flex items-center justify-center gap-2"
+            >
+              <Check className="w-4 h-4" />
+              Save
+            </button>
+          </div>
+        ) : (
+          <button 
+            onClick={handleEditProfile}
+            className="w-full h-11 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-medium flex items-center justify-center gap-2"
+          >
+            <Edit3 className="w-4 h-4" />
+            Edit Profile
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
