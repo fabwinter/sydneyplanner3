@@ -346,13 +346,37 @@ const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRange
 }
 
 // Check-in Detail Sheet with Toggle
-const CheckinDetailSheet = ({ checkin, isOpen, onClose }) => {
+const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain }) => {
   const [activeTab, setActiveTab] = useState('checkin') // 'checkin' or 'venue'
+  const [saved, setSaved] = useState(false)
   
   if (!checkin || !isOpen) return null
   
   const CategoryIcon = categoryIcons[checkin.venue.category] || Sparkles
   const categoryColor = categoryColors[checkin.venue.category] || '#6B7280'
+
+  const handleSave = () => {
+    setSaved(!saved)
+    if (navigator.vibrate) navigator.vibrate(50)
+    // Show toast notification
+    if (typeof window !== 'undefined') {
+      import('sonner').then(({ toast }) => {
+        toast.success(saved ? 'Removed from saved' : 'Saved to favorites!')
+      })
+    }
+  }
+
+  const handleCheckInAgain = () => {
+    if (navigator.vibrate) navigator.vibrate(50)
+    if (typeof window !== 'undefined') {
+      import('sonner').then(({ toast }) => {
+        toast.success('Opening check-in...')
+      })
+    }
+    if (onCheckInAgain) {
+      onCheckInAgain(checkin.venue)
+    }
+  }
 
   return (
     <AnimatePresence>
