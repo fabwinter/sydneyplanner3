@@ -271,6 +271,48 @@ frontend:
         agent: "main"
         comment: "Mobile bottom nav with Home, Map, Timeline, Chat, Profile icons"
 
+  - task: "Timeline Page"
+    implemented: true
+    working: true
+    file: "/app/app/timeline/page.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Timeline page with real API data, date range picker, category filter, map view toggle, check-in detail sheet"
+      - working: true
+        agent: "main"
+        comment: "Verified via screenshot - Timeline shows real check-ins from API (2 places visited), grouped by date with proper formatting"
+
+  - task: "Profile Page"
+    implemented: true
+    working: true
+    file: "/app/app/profile/page.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Profile page with user stats, tabs (Overview, Check-Ins, Saved, Badges), achievements, category badges, settings sheet"
+      - working: true
+        agent: "main"
+        comment: "Verified via screenshot - Profile shows 2 check-ins, 20 points, categories (Beach, Cafe), and proper tab navigation"
+
+  - task: "Photo Upload in Check-in Modal"
+    implemented: true
+    working: "NA"
+    file: "/app/app/timeline/page.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "CheckInModalSimple component with photo upload UI, file input, preview thumbnails, and upload to /api/upload endpoint"
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
