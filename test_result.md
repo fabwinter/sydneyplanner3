@@ -168,6 +168,72 @@ backend:
         agent: "testing"
         comment: "✅ TESTED: GET /api/search working correctly. Tested multiple queries (beach, cafe, restaurant, empty). Returns proper JSON with venues array, query echo, and total count. Smart filtering works: beach query returns 3 beach venues, cafe returns 2 cafes, restaurant returns 2 restaurants. Empty query returns top 5 rated venues."
 
+  - task: "Check-ins API (POST)"
+    implemented: true
+    working: true
+    file: "/app/app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented POST /api/checkins - creates new check-ins with venue info, rating, comment, and photos. Falls back to MongoDB if Supabase unavailable."
+      - working: true
+        agent: "main"
+        comment: "Manually tested with curl - successfully creates check-ins in MongoDB. Response includes success flag and check-in ID."
+
+  - task: "Check-ins API (GET)"
+    implemented: true
+    working: true
+    file: "/app/app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented GET /api/checkins - returns user check-ins sorted by created_at desc. Falls back to MongoDB if Supabase unavailable."
+      - working: true
+        agent: "main"
+        comment: "Manually tested with curl - returns proper JSON with checkins array and total count. Currently 2 check-ins in database."
+
+  - task: "Saves API (POST)"
+    implemented: true
+    working: true
+    file: "/app/app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented POST /api/saves - toggle save/unsave venues. Uses MongoDB for storage."
+
+  - task: "Saves API (GET)"
+    implemented: true
+    working: true
+    file: "/app/app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented GET /api/saves - returns user's saved venues sorted by created_at desc."
+
+  - task: "Photo Upload API"
+    implemented: true
+    working: true
+    file: "/app/app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented POST /api/upload - handles file upload with graceful fallback to placeholder if Supabase Storage not configured."
+
 frontend:
   - task: "Hero Landing Page"
     implemented: true
