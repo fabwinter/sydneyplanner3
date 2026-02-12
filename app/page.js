@@ -30,13 +30,14 @@ const HeroPage = () => {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      {/* Background Image with Overlay */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1568246654191-5d306d62227d?w=1920&q=80')`,
-        }}
-      >
+      {/* Background Image with Ken Burns Effect */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-ken-burns"
+          style={{
+            backgroundImage: `url('https://images.unsplash.com/photo-1568246654191-5d306d62227d?w=1920&q=80')`,
+          }}
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-[#0A2540]/70 via-[#0A2540]/50 to-[#0A2540]/90" />
       </div>
 
