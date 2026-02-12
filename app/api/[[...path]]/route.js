@@ -311,6 +311,244 @@ async function handleRoute(request, { params }) {
       }))
     }
 
+    // =====================
+    // CHECK-IN ENDPOINTS
+    // =====================
+
+    // Create check-in - POST /api/checkins
+    if (route === '/checkins' && method === 'POST') {
+      const body = await request.json()
+      const { venue_id, venue_name, venue_category, venue_address, venue_lat, venue_lng, venue_image, rating, comment, photos, user_id } = body
+      
+      if (!venue_id || !rating) {
+        return handleCORS(NextResponse.json(
+          { error: "venue_id and rating are required" },
+          { status: 400 }
+        ))
+      }
+
+      const checkinId = uuidv4()
+      const now = new Date().toISOString()
+
+      // Try to save to Supabase
+      try {
+        const { data, error } = await supabase
+          .from('checkins')
+          .insert([{
+            id: checkinId,
+            user_id: user_id || 'anonymous',
+            venue_id,
+            venue_name,
+            venue_category,
+            venue_address,
+            venue_lat,
+            venue_lng,
+            venue_image,
+            rating,
+            comment: comment || '',
+            photos: photos || [],
+            created_at: now
+          }])
+          .select()
+
+        if (error) {
+          console.log('Supabase error (table may not exist):', error.message)
+          // Fall back to MongoDB if Supabase table doesn't exist
+          const database = await connectToMongo()
+          const result = await database.collection('checkins').insertOne({
+            id: checkinId,
+            user_id: user_id || 'anonymous',
+            venue_id,
+            venue_name,
+            venue_category,
+            venue_address,
+            venue_lat,
+            venue_lng,
+            venue_image,
+            rating,
+            comment: comment || '',
+            photos: photos || [],
+            created_at: now
+          })
+          
+          return handleCORS(NextResponse.json({
+            success: true,
+            id: checkinId,
+            message: 'Check-in saved to MongoDB',
+            storage: 'mongodb'
+          }))
+        }
+
+        return handleCORS(NextResponse.json({
+          success: true,
+          id: checkinId,
+          data: data,
+          message: 'Check-in saved successfully',
+          storage: 'supabase'
+        }))
+      } catch (err) {
+        console.error('Check-in save error:', err)
+        // Fallback to MongoDB
+        const database = await connectToMongo()
+        await database.collection('checkins').insertOne({
+          id: checkinId,
+          user_id: user_id || 'anonymous',
+          venue_id,
+          venue_name,
+          venue_category,
+          venue_address,
+          venue_lat,
+          venue_lng,
+          venue_image,
+          rating,
+          comment: comment || '',
+          photos: photos || [],
+          created_at: now
+        })
+        
+        return handleCORS(NextResponse.json({
+          success: true,
+          id: checkinId,
+          message: 'Check-in saved to MongoDB',
+          storage: 'mongodb'
+        }))
+      }
+    }
+
+    // Get user check-ins - GET /api/checkins?user_id=...
+    if (route === '/checkins' && method === 'GET') {
+      const url = new URL(request.url)
+      const user_id = url.searchParams.get('user_id') || 'anonymous'
+      
+      try {
+        // Try Supabase first
+        const { data, error } = await supabase
+          .from('checkins')
+          .select('*')
+          .eq('user_id', user_id)
+          .order('created_at', { ascending: false })
+
+        if (error) {
+          console.log('Supabase error:', error.message)
+          // Fallback to MongoDB
+          const database = await connectToMongo()
+          const checkins = await database.collection('checkins')
+            .find({ user_id })
+            .sort({ created_at: -1 })
+            .toArray()
+          
+          return handleCORS(NextResponse.json({
+            checkins: checkins,
+            total: checkins.length,
+            storage: 'mongodb'
+          }))
+        }
+
+        return handleCORS(NextResponse.json({
+          checkins: data || [],
+          total: (data || []).length,
+          storage: 'supabase'
+        }))
+      } catch (err) {
+        // Fallback to MongoDB
+        const database = await connectToMongo()
+        const checkins = await database.collection('checkins')
+          .find({ user_id })
+          .sort({ created_at: -1 })
+          .toArray()
+        
+        return handleCORS(NextResponse.json({
+          checkins: checkins,
+          total: checkins.length,
+          storage: 'mongodb'
+        }))
+      }
+    }
+
+    // Save venue - POST /api/saves
+    if (route === '/saves' && method === 'POST') {
+      const body = await request.json()
+      const { venue_id, venue_name, venue_category, venue_image, user_id } = body
+      
+      if (!venue_id) {
+        return handleCORS(NextResponse.json(
+          { error: "venue_id is required" },
+          { status: 400 }
+        ))
+      }
+
+      const saveId = uuidv4()
+      const now = new Date().toISOString()
+
+      try {
+        const database = await connectToMongo()
+        
+        // Check if already saved
+        const existing = await database.collection('saves').findOne({
+          user_id: user_id || 'anonymous',
+          venue_id
+        })
+
+        if (existing) {
+          // Remove save
+          await database.collection('saves').deleteOne({ id: existing.id })
+          return handleCORS(NextResponse.json({
+            success: true,
+            action: 'removed',
+            message: 'Venue removed from saves'
+          }))
+        }
+
+        // Add save
+        await database.collection('saves').insertOne({
+          id: saveId,
+          user_id: user_id || 'anonymous',
+          venue_id,
+          venue_name,
+          venue_category,
+          venue_image,
+          created_at: now
+        })
+        
+        return handleCORS(NextResponse.json({
+          success: true,
+          action: 'saved',
+          id: saveId,
+          message: 'Venue saved successfully'
+        }))
+      } catch (err) {
+        console.error('Save error:', err)
+        return handleCORS(NextResponse.json(
+          { error: "Failed to save venue" },
+          { status: 500 }
+        ))
+      }
+    }
+
+    // Get user saves - GET /api/saves?user_id=...
+    if (route === '/saves' && method === 'GET') {
+      const url = new URL(request.url)
+      const user_id = url.searchParams.get('user_id') || 'anonymous'
+      
+      try {
+        const database = await connectToMongo()
+        const saves = await database.collection('saves')
+          .find({ user_id })
+          .sort({ created_at: -1 })
+          .toArray()
+        
+        return handleCORS(NextResponse.json({
+          saves: saves,
+          total: saves.length
+        }))
+      } catch (err) {
+        return handleCORS(NextResponse.json({
+          saves: [],
+          total: 0
+        }))
+      }
+    }
+
     // Route not found
     return handleCORS(NextResponse.json(
       { error: `Route ${route} not found` },
