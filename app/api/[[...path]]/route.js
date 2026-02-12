@@ -465,6 +465,41 @@ async function handleRoute(request, { params }) {
       }
     }
 
+    // Delete check-in - DELETE /api/checkins/:id
+    if (route.startsWith('/checkins/') && method === 'DELETE') {
+      const checkinId = path[1]
+      
+      if (!checkinId) {
+        return handleCORS(NextResponse.json(
+          { error: "Check-in ID is required" },
+          { status: 400 }
+        ))
+      }
+
+      try {
+        const database = await connectToMongo()
+        const result = await database.collection('checkins').deleteOne({ id: checkinId })
+        
+        if (result.deletedCount === 0) {
+          return handleCORS(NextResponse.json(
+            { error: "Check-in not found" },
+            { status: 404 }
+          ))
+        }
+
+        return handleCORS(NextResponse.json({
+          success: true,
+          message: 'Check-in deleted successfully'
+        }))
+      } catch (err) {
+        console.error('Delete check-in error:', err)
+        return handleCORS(NextResponse.json(
+          { error: "Failed to delete check-in" },
+          { status: 500 }
+        ))
+      }
+    }
+
     // Save venue - POST /api/saves
     if (route === '/saves' && method === 'POST') {
       const body = await request.json()
