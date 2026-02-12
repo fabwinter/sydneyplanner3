@@ -624,6 +624,16 @@ export default function ProfilePage() {
                         </span>
                       </div>
                     </div>
+                    <button
+                      onClick={() => {
+                        if (confirm('Delete this check-in?')) {
+                          deleteCheckin(checkin.id)
+                        }
+                      }}
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex-shrink-0"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
                   </div>
                 ))}
               </div>
