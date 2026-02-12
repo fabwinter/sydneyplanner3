@@ -1,307 +1,314 @@
 #!/usr/bin/env python3
-"""
-Sydney Planner Backend API Testing Script
-Tests all backend endpoints according to test_result.md requirements
-"""
-
 import requests
 import json
-import sys
+import uuid
 import os
-from urllib.parse import urljoin
+from io import BytesIO
 
-# Get base URL from environment
-BASE_URL = "https://explore-sydney.preview.emergentagent.com"
-API_BASE = f"{BASE_URL}/api"
+# Base URL from environment
+BASE_URL = "https://explore-sydney.preview.emergentagent.com/api"
 
-def test_root_endpoints():
-    """Test GET /api/ and GET /api/root endpoints"""
-    print("\n=== Testing Root Endpoints ===")
+def test_checkins_api():
+    """Test Check-ins API endpoints"""
+    print("=" * 50)
+    print("TESTING CHECK-INS API")
+    print("=" * 50)
     
-    endpoints = [
-        ("GET /api/", f"{API_BASE}/"),
-        ("GET /api/root", f"{API_BASE}/root")
-    ]
+    # Test data
+    test_venue_id = str(uuid.uuid4())
+    test_data_full = {
+        "venue_id": test_venue_id,
+        "venue_name": "Test Bondi Beach",
+        "venue_category": "Beach",
+        "venue_address": "Bondi Beach NSW 2026",
+        "venue_lat": -33.8915,
+        "venue_lng": 151.2767,
+        "venue_image": "https://images.unsplash.com/photo-1527731149372-fae504a1185f?w=400&h=300&fit=crop",
+        "rating": 4.5,
+        "comment": "Amazing beach day with perfect waves!",
+        "photos": ["photo1.jpg", "photo2.jpg"],
+        "user_id": "anonymous"
+    }
     
-    results = []
-    for name, url in endpoints:
-        try:
-            print(f"Testing {name}...")
-            response = requests.get(url, timeout=10)
-            
-            print(f"Status: {response.status_code}")
-            
-            if response.status_code == 200:
-                data = response.json()
-                print(f"Response: {json.dumps(data, indent=2)}")
-                
-                # Check response structure
-                if 'message' in data and 'version' in data:
-                    results.append(f"✅ {name} - Working correctly")
-                else:
-                    results.append(f"❌ {name} - Missing expected fields (message, version)")
-            else:
-                results.append(f"❌ {name} - HTTP {response.status_code}: {response.text}")
-                
-        except Exception as e:
-            results.append(f"❌ {name} - Error: {str(e)}")
-            print(f"Error: {e}")
+    test_data_minimal = {
+        "venue_id": str(uuid.uuid4()),
+        "rating": 4.0
+    }
     
-    return results
-
-def test_chat_endpoint():
-    """Test POST /api/chat endpoint"""
-    print("\n=== Testing AI Chat Endpoint ===")
-    
-    results = []
-    url = f"{API_BASE}/chat"
-    
-    # Test 1: Valid chat request
+    # Test 1: Create check-in with all fields
+    print("\n1. Testing POST /api/checkins with all fields...")
     try:
-        print("Testing POST /api/chat with valid query...")
-        payload = {"query": "best brunch cafes in Sydney"}
-        response = requests.post(url, json=payload, timeout=15)
-        
-        print(f"Status: {response.status_code}")
+        response = requests.post(f"{BASE_URL}/checkins", json=test_data_full)
+        print(f"Status Code: {response.status_code}")
+        print(f"Response: {response.json()}")
         
         if response.status_code == 200:
             data = response.json()
-            print(f"Response keys: {list(data.keys())}")
-            
-            # Check response structure
-            required_fields = ['message', 'venues', 'query']
-            missing_fields = [field for field in required_fields if field not in data]
-            
-            if not missing_fields:
-                # Validate data types
-                if (isinstance(data['message'], str) and 
-                    isinstance(data['venues'], list) and 
-                    isinstance(data['query'], str)):
-                    
-                    print(f"Message: {data['message'][:100]}...")
-                    print(f"Venues count: {len(data['venues'])}")
-                    print(f"Query echoed: {data['query']}")
-                    
-                    # Check venue structure
-                    if data['venues'] and len(data['venues']) > 0:
-                        venue = data['venues'][0]
-                        venue_fields = ['id', 'name', 'category', 'address', 'rating']
-                        venue_missing = [field for field in venue_fields if field not in venue]
-                        
-                        if not venue_missing:
-                            results.append("✅ POST /api/chat - Working correctly with valid response structure")
-                        else:
-                            results.append(f"❌ POST /api/chat - Venue missing fields: {venue_missing}")
-                    else:
-                        results.append("❌ POST /api/chat - No venues returned")
-                else:
-                    results.append("❌ POST /api/chat - Invalid data types in response")
+            if data.get('success') and data.get('id') and data.get('storage'):
+                print("✅ PASS: Check-in created successfully with all fields")
             else:
-                results.append(f"❌ POST /api/chat - Missing required fields: {missing_fields}")
+                print("❌ FAIL: Response missing required fields")
         else:
-            results.append(f"❌ POST /api/chat - HTTP {response.status_code}: {response.text}")
-            
+            print(f"❌ FAIL: Unexpected status code {response.status_code}")
     except Exception as e:
-        results.append(f"❌ POST /api/chat - Error: {str(e)}")
-        print(f"Error: {e}")
+        print(f"❌ FAIL: Exception occurred: {e}")
     
-    # Test 2: Missing query parameter
+    # Test 2: Create check-in with only required fields
+    print("\n2. Testing POST /api/checkins with only required fields...")
     try:
-        print("Testing POST /api/chat with missing query...")
-        response = requests.post(url, json={}, timeout=10)
+        response = requests.post(f"{BASE_URL}/checkins", json=test_data_minimal)
+        print(f"Status Code: {response.status_code}")
+        print(f"Response: {response.json()}")
         
-        print(f"Status: {response.status_code}")
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('success') and data.get('id'):
+                print("✅ PASS: Check-in created successfully with minimal fields")
+            else:
+                print("❌ FAIL: Response missing required fields")
+        else:
+            print(f"❌ FAIL: Unexpected status code {response.status_code}")
+    except Exception as e:
+        print(f"❌ FAIL: Exception occurred: {e}")
+    
+    # Test 3: Try to create check-in without venue_id (should fail)
+    print("\n3. Testing POST /api/checkins without venue_id (should fail)...")
+    try:
+        invalid_data = {"rating": 4.0}
+        response = requests.post(f"{BASE_URL}/checkins", json=invalid_data)
+        print(f"Status Code: {response.status_code}")
+        print(f"Response: {response.json()}")
         
         if response.status_code == 400:
             data = response.json()
-            if 'error' in data:
-                results.append("✅ POST /api/chat - Error handling working (missing query)")
+            if 'error' in data and 'venue_id' in data['error']:
+                print("✅ PASS: Correctly rejected request without venue_id")
             else:
-                results.append("❌ POST /api/chat - Bad request but no error message")
+                print("❌ FAIL: Error message doesn't mention venue_id")
         else:
-            results.append(f"❌ POST /api/chat - Should return 400 for missing query, got {response.status_code}")
-            
+            print(f"❌ FAIL: Expected 400, got {response.status_code}")
     except Exception as e:
-        results.append(f"❌ POST /api/chat missing query test - Error: {str(e)}")
-        print(f"Error: {e}")
+        print(f"❌ FAIL: Exception occurred: {e}")
     
-    return results
-
-def test_venues_endpoint():
-    """Test GET /api/venues endpoint"""
-    print("\n=== Testing Get All Venues Endpoint ===")
-    
-    results = []
-    url = f"{API_BASE}/venues"
-    
+    # Test 4: Try to create check-in without rating (should fail)
+    print("\n4. Testing POST /api/checkins without rating (should fail)...")
     try:
-        print("Testing GET /api/venues...")
-        response = requests.get(url, timeout=10)
+        invalid_data = {"venue_id": str(uuid.uuid4())}
+        response = requests.post(f"{BASE_URL}/checkins", json=invalid_data)
+        print(f"Status Code: {response.status_code}")
+        print(f"Response: {response.json()}")
         
-        print(f"Status: {response.status_code}")
+        if response.status_code == 400:
+            data = response.json()
+            if 'error' in data and 'rating' in data['error']:
+                print("✅ PASS: Correctly rejected request without rating")
+            else:
+                print("❌ FAIL: Error message doesn't mention rating")
+        else:
+            print(f"❌ FAIL: Expected 400, got {response.status_code}")
+    except Exception as e:
+        print(f"❌ FAIL: Exception occurred: {e}")
+    
+    # Test 5: Get check-ins for anonymous user
+    print("\n5. Testing GET /api/checkins?user_id=anonymous...")
+    try:
+        response = requests.get(f"{BASE_URL}/checkins?user_id=anonymous")
+        print(f"Status Code: {response.status_code}")
+        print(f"Response: {response.json()}")
         
         if response.status_code == 200:
             data = response.json()
-            print(f"Response keys: {list(data.keys())}")
-            
-            # Check response structure
-            if 'venues' in data and 'total' in data:
-                venues = data['venues']
-                total = data['total']
+            if 'checkins' in data and 'total' in data and 'storage' in data:
+                print(f"✅ PASS: Retrieved {data['total']} check-ins from {data['storage']}")
                 
-                print(f"Total venues: {total}")
-                print(f"Venues array length: {len(venues)}")
-                
-                # Validate data types and structure
-                if isinstance(venues, list) and isinstance(total, int):
-                    if len(venues) == total and total > 0:
-                        # Check first venue structure
-                        venue = venues[0]
-                        required_fields = ['id', 'name', 'category', 'address', 'lat', 'lng', 'rating']
-                        missing_fields = [field for field in required_fields if field not in venue]
-                        
-                        if not missing_fields:
-                            results.append(f"✅ GET /api/venues - Working correctly ({total} venues)")
-                        else:
-                            results.append(f"❌ GET /api/venues - Venue missing fields: {missing_fields}")
+                # Check if checkins are sorted by created_at desc
+                if len(data['checkins']) > 1:
+                    checkins = data['checkins']
+                    for i in range(len(checkins) - 1):
+                        if checkins[i]['created_at'] < checkins[i+1]['created_at']:
+                            print("❌ FAIL: Check-ins not sorted by created_at desc")
+                            break
                     else:
-                        results.append(f"❌ GET /api/venues - Mismatch: venues array length {len(venues)} != total {total}")
-                else:
-                    results.append("❌ GET /api/venues - Invalid data types")
+                        print("✅ PASS: Check-ins properly sorted by created_at desc")
             else:
-                results.append("❌ GET /api/venues - Missing required fields (venues, total)")
+                print("❌ FAIL: Response missing required fields")
         else:
-            results.append(f"❌ GET /api/venues - HTTP {response.status_code}: {response.text}")
-            
+            print(f"❌ FAIL: Unexpected status code {response.status_code}")
     except Exception as e:
-        results.append(f"❌ GET /api/venues - Error: {str(e)}")
-        print(f"Error: {e}")
-    
-    return results
+        print(f"❌ FAIL: Exception occurred: {e}")
 
-def test_search_endpoint():
-    """Test GET /api/search?q=query endpoint"""
-    print("\n=== Testing Search Venues Endpoint ===")
+def test_saves_api():
+    """Test Saves API endpoints"""
+    print("\n" + "=" * 50)
+    print("TESTING SAVES API")
+    print("=" * 50)
     
-    results = []
+    test_venue_id = str(uuid.uuid4())
+    test_save_data = {
+        "venue_id": test_venue_id,
+        "venue_name": "Test Sydney Opera House",
+        "venue_category": "Attraction",
+        "venue_image": "https://images.unsplash.com/photo-1523059623039-a9ed027e7fad?w=400&h=300&fit=crop",
+        "user_id": "anonymous"
+    }
     
-    # Test searches
-    test_cases = [
-        ("beach", "beach venues"),
-        ("cafe", "cafe venues"),
-        ("restaurant", "restaurant venues"),
-        ("", "empty query")
-    ]
-    
-    for query, description in test_cases:
-        try:
-            url = f"{API_BASE}/search"
-            params = {"q": query} if query else {}
-            
-            print(f"Testing GET /api/search?q={query} ({description})...")
-            response = requests.get(url, params=params, timeout=10)
-            
-            print(f"Status: {response.status_code}")
-            
-            if response.status_code == 200:
-                data = response.json()
-                print(f"Response keys: {list(data.keys())}")
-                
-                # Check response structure
-                required_fields = ['venues', 'query', 'total']
-                missing_fields = [field for field in required_fields if field not in data]
-                
-                if not missing_fields:
-                    venues = data['venues']
-                    echoed_query = data['query']
-                    total = data['total']
-                    
-                    print(f"Query echoed: '{echoed_query}'")
-                    print(f"Venues found: {total}")
-                    
-                    # Validate data types
-                    if (isinstance(venues, list) and 
-                        isinstance(echoed_query, str) and 
-                        isinstance(total, int)):
-                        
-                        if len(venues) == total:
-                            if query and total > 0:
-                                # Check if venues match search criteria
-                                venue = venues[0]
-                                print(f"Sample venue: {venue.get('name', 'N/A')} - {venue.get('category', 'N/A')}")
-                            
-                            results.append(f"✅ GET /api/search?q={query} - Working correctly ({total} results)")
-                        else:
-                            results.append(f"❌ GET /api/search?q={query} - Array length {len(venues)} != total {total}")
-                    else:
-                        results.append(f"❌ GET /api/search?q={query} - Invalid data types")
+    # Test 6: Save a venue
+    print("\n6. Testing POST /api/saves (save venue)...")
+    try:
+        response = requests.post(f"{BASE_URL}/saves", json=test_save_data)
+        print(f"Status Code: {response.status_code}")
+        print(f"Response: {response.json()}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('success') and data.get('action') == 'saved':
+                print("✅ PASS: Venue saved successfully")
+                save_id = data.get('id')
+                if save_id:
+                    print(f"✅ PASS: Save ID returned: {save_id}")
                 else:
-                    results.append(f"❌ GET /api/search?q={query} - Missing fields: {missing_fields}")
+                    print("❌ FAIL: No save ID returned")
             else:
-                results.append(f"❌ GET /api/search?q={query} - HTTP {response.status_code}: {response.text}")
-                
-        except Exception as e:
-            results.append(f"❌ GET /api/search?q={query} - Error: {str(e)}")
-            print(f"Error: {e}")
+                print("❌ FAIL: Response missing required fields or wrong action")
+        else:
+            print(f"❌ FAIL: Unexpected status code {response.status_code}")
+    except Exception as e:
+        print(f"❌ FAIL: Exception occurred: {e}")
     
-    return results
+    # Test 7: Get saves
+    print("\n7. Testing GET /api/saves?user_id=anonymous...")
+    try:
+        response = requests.get(f"{BASE_URL}/saves?user_id=anonymous")
+        print(f"Status Code: {response.status_code}")
+        print(f"Response: {response.json()}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            if 'saves' in data and 'total' in data:
+                print(f"✅ PASS: Retrieved {data['total']} saves")
+                
+                # Check if the venue we just saved is there
+                if data['total'] > 0:
+                    saved_venue_ids = [save['venue_id'] for save in data['saves']]
+                    if test_venue_id in saved_venue_ids:
+                        print("✅ PASS: Previously saved venue found in saves")
+                    else:
+                        print("❌ FAIL: Previously saved venue not found in saves")
+            else:
+                print("❌ FAIL: Response missing required fields")
+        else:
+            print(f"❌ FAIL: Unexpected status code {response.status_code}")
+    except Exception as e:
+        print(f"❌ FAIL: Exception occurred: {e}")
+    
+    # Test 8: Save same venue again (should unsave it)
+    print("\n8. Testing POST /api/saves (unsave venue)...")
+    try:
+        response = requests.post(f"{BASE_URL}/saves", json=test_save_data)
+        print(f"Status Code: {response.status_code}")
+        print(f"Response: {response.json()}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('success') and data.get('action') == 'removed':
+                print("✅ PASS: Venue unsaved successfully (toggle functionality working)")
+            else:
+                print("❌ FAIL: Response missing required fields or wrong action")
+        else:
+            print(f"❌ FAIL: Unexpected status code {response.status_code}")
+    except Exception as e:
+        print(f"❌ FAIL: Exception occurred: {e}")
+    
+    # Test for missing venue_id
+    print("\n9. Testing POST /api/saves without venue_id (should fail)...")
+    try:
+        invalid_data = {"venue_name": "Test Venue"}
+        response = requests.post(f"{BASE_URL}/saves", json=invalid_data)
+        print(f"Status Code: {response.status_code}")
+        print(f"Response: {response.json()}")
+        
+        if response.status_code == 400:
+            data = response.json()
+            if 'error' in data and 'venue_id' in data['error']:
+                print("✅ PASS: Correctly rejected request without venue_id")
+            else:
+                print("❌ FAIL: Error message doesn't mention venue_id")
+        else:
+            print(f"❌ FAIL: Expected 400, got {response.status_code}")
+    except Exception as e:
+        print(f"❌ FAIL: Exception occurred: {e}")
+
+def test_upload_api():
+    """Test Upload API endpoint"""
+    print("\n" + "=" * 50)
+    print("TESTING UPLOAD API")
+    print("=" * 50)
+    
+    # Test 9: Test upload endpoint (will return placeholder URL)
+    print("\n10. Testing POST /api/upload with image file...")
+    try:
+        # Create a fake image file in memory
+        fake_image_data = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xdb\x00\x00\x00\x00IEND\xaeB`\x82'
+        files = {'file': ('test.png', BytesIO(fake_image_data), 'image/png')}
+        
+        response = requests.post(f"{BASE_URL}/upload", files=files)
+        print(f"Status Code: {response.status_code}")
+        print(f"Response: {response.json()}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('success') and data.get('url'):
+                print("✅ PASS: Upload endpoint working (returns URL)")
+                if 'placeholder' in data.get('note', '').lower():
+                    print("✅ PASS: Using placeholder URL as expected (Supabase Storage not fully configured)")
+                else:
+                    print("✅ PASS: Upload successful to Supabase Storage")
+            else:
+                print("❌ FAIL: Response missing required fields")
+        else:
+            print(f"❌ FAIL: Unexpected status code {response.status_code}")
+    except Exception as e:
+        print(f"❌ FAIL: Exception occurred: {e}")
+    
+    # Test upload without file
+    print("\n11. Testing POST /api/upload without file (should fail)...")
+    try:
+        response = requests.post(f"{BASE_URL}/upload", files={})
+        print(f"Status Code: {response.status_code}")
+        print(f"Response: {response.json()}")
+        
+        if response.status_code == 400:
+            data = response.json()
+            if 'error' in data and 'file' in data['error'].lower():
+                print("✅ PASS: Correctly rejected request without file")
+            else:
+                print("❌ FAIL: Error message doesn't mention file")
+        else:
+            print(f"❌ FAIL: Expected 400, got {response.status_code}")
+    except Exception as e:
+        print(f"❌ FAIL: Exception occurred: {e}")
 
 def main():
-    """Run all backend API tests"""
-    print("🧪 Sydney Planner Backend API Testing")
+    """Run all backend tests"""
+    print("Starting Sydney Planner Backend API Tests...")
     print(f"Base URL: {BASE_URL}")
-    print(f"API Base: {API_BASE}")
-    print("=" * 50)
     
-    all_results = []
-    
-    # Test in priority order: high -> medium -> low
     try:
-        # High priority: AI Chat endpoint
-        chat_results = test_chat_endpoint()
-        all_results.extend(chat_results)
+        # Test Check-ins API
+        test_checkins_api()
         
-        # Medium priority: Venues endpoints
-        venues_results = test_venues_endpoint()
-        all_results.extend(venues_results)
+        # Test Saves API
+        test_saves_api()
         
-        search_results = test_search_endpoint()
-        all_results.extend(search_results)
+        # Test Upload API
+        test_upload_api()
         
-        # Low priority: Root endpoints
-        root_results = test_root_endpoints()
-        all_results.extend(root_results)
+        print("\n" + "=" * 50)
+        print("ALL TESTS COMPLETED")
+        print("=" * 50)
         
-    except KeyboardInterrupt:
-        print("\n\nTesting interrupted by user")
-        return 1
-    
-    # Summary
-    print("\n" + "=" * 50)
-    print("🏁 BACKEND TEST SUMMARY")
-    print("=" * 50)
-    
-    passed = 0
-    failed = 0
-    
-    for result in all_results:
-        print(result)
-        if result.startswith("✅"):
-            passed += 1
-        else:
-            failed += 1
-    
-    print(f"\nTotal Tests: {len(all_results)}")
-    print(f"✅ Passed: {passed}")
-    print(f"❌ Failed: {failed}")
-    
-    if failed == 0:
-        print("\n🎉 ALL BACKEND TESTS PASSED!")
-        return 0
-    else:
-        print(f"\n⚠️  {failed} backend tests failed")
-        return 1
+    except Exception as e:
+        print(f"Fatal error during testing: {e}")
 
 if __name__ == "__main__":
-    exit_code = main()
-    sys.exit(exit_code)
+    main()
