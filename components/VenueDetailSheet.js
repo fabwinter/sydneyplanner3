@@ -690,17 +690,17 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
               {/* Bottom Action Bar - Smaller buttons like reference */}
               <div className="absolute bottom-0 left-0 right-0 p-3 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 safe-bottom">
                 <div className="flex items-center gap-2">
-                  <button onClick={handleSave} className={`w-11 h-11 rounded-xl border flex items-center justify-center transition-all ${saved ? 'bg-red-50 border-red-200 text-red-500' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
-                    <Heart className={`w-5 h-5 ${saved ? 'fill-current' : ''}`} />
+                  <button onClick={handleSave} className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-all ${saved ? 'bg-red-50 border-red-200 text-red-500' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
+                    <Heart className={`w-4 h-4 ${saved ? 'fill-current' : ''}`} />
                   </button>
-                  <button className="w-11 h-11 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500">
-                    <ListPlus className="w-5 h-5" />
+                  <button className="w-9 h-9 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500">
+                    <ListPlus className="w-4 h-4" />
                   </button>
-                  <button onClick={handleShare} className="w-11 h-11 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500">
-                    <Share2 className="w-5 h-5" />
+                  <button onClick={handleShare} className="w-9 h-9 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500">
+                    <Share2 className="w-4 h-4" />
                   </button>
-                  <button onClick={handleCheckInClick} className="flex-1 h-11 rounded-xl flex items-center justify-center gap-2 font-semibold bg-[#00A8CC] text-white">
-                    <Check className="w-5 h-5" />
+                  <button onClick={handleCheckInClick} className="flex-1 h-9 rounded-lg flex items-center justify-center gap-1.5 font-medium text-sm bg-[#00A8CC] text-white">
+                    <Check className="w-4 h-4" />
                     <span>{totalVisits > 0 ? `Check-In Again (${totalVisits})` : 'Check-In'}</span>
                   </button>
                 </div>
