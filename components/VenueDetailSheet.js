@@ -211,6 +211,10 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
   const [venueCheckins, setVenueCheckins] = useState([])
   const [currentVisitIndex, setCurrentVisitIndex] = useState(0)
   const [isLoadingCheckins, setIsLoadingCheckins] = useState(false)
+  
+  // Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingCheckin, setEditingCheckin] = useState(null)
 
   // Fetch check-ins for this venue
   const fetchVenueCheckins = useCallback(async () => {
