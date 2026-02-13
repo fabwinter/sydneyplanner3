@@ -553,14 +553,14 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
                     <div className="mb-5 p-4 rounded-2xl bg-[#E8F7FA] dark:bg-gray-800 border border-[#00A8CC]/20 dark:border-gray-700">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <Calendar className="w-5 h-5 text-[#00A8CC]" />
-                          <span className="font-semibold text-gray-900 dark:text-white">Your Visits ({totalVisits})</span>
+                          <Calendar className="w-4 h-4 text-[#00A8CC]" />
+                          <span className="font-medium text-sm text-gray-900 dark:text-white">Your Visits ({totalVisits})</span>
                         </div>
                         <button 
                           onClick={handleCheckInClick}
-                          className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1"
+                          className="px-2.5 py-1 rounded-md border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-600 dark:text-gray-400 flex items-center gap-1"
                         >
-                          <Check className="w-4 h-4" />
+                          <Check className="w-3 h-3" />
                           Check-In Again
                         </button>
                       </div>
