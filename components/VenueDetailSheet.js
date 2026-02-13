@@ -169,7 +169,7 @@ const CheckInModal = ({ venue, isOpen, onClose, onComplete }) => {
           venue_image: venue.image,
           rating,
           comment,
-          photos: photoUrls,
+          photos: finalPhotoUrls,
           user_id: 'anonymous'
         })
       })
