@@ -47,37 +47,90 @@ const CheckInModal = ({ venue, isOpen, onClose, onComplete }) => {
   const [addToPublicFeed, setAddToPublicFeed] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadedUrls, setUploadedUrls] = useState([]) // Track uploaded URLs
   const fileInputRef = useRef(null)
   const cameraInputRef = useRef(null)
 
   if (!venue || !isOpen) return null
+
+  // Resize image to max dimension while maintaining aspect ratio
+  const resizeImage = (file, maxSize = 1200) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          let { width, height } = img
+          
+          // Calculate new dimensions
+          if (width > height) {
+            if (width > maxSize) {
+              height = (height * maxSize) / width
+              width = maxSize
+            }
+          } else {
+            if (height > maxSize) {
+              width = (width * maxSize) / height
+              height = maxSize
+            }
+          }
+          
+          canvas.width = width
+          canvas.height = height
+          
+          const ctx = canvas.getContext('2d')
+          ctx.drawImage(img, 0, 0, width, height)
+          
+          // Convert to blob with compression
+          canvas.toBlob(
+            (blob) => {
+              resolve(new File([blob], file.name, { type: 'image/jpeg' }))
+            },
+            'image/jpeg',
+            0.8 // 80% quality
+          )
+        }
+        img.src = e.target.result
+      }
+      reader.readAsDataURL(file)
+    })
+  }
 
   const handlePhotoCapture = async (e) => {
     const files = Array.from(e.target.files)
     if (files.length === 0) return
     
     setIsUploading(true)
+    const newUrls = []
     
-    for (const file of files) {
-      // Create local preview
-      const reader = new FileReader()
-      reader.onload = (e) => setPhotos(prev => [...prev, { id: Date.now() + Math.random(), url: e.target.result, file }])
-      reader.readAsDataURL(file)
-      
-      // Upload to server
+    for (const originalFile of files) {
       try {
+        // Resize image first
+        const resizedFile = await resizeImage(originalFile)
+        
+        // Create local preview
+        const previewUrl = URL.createObjectURL(resizedFile)
+        setPhotos(prev => [...prev, { id: Date.now() + Math.random(), url: previewUrl, file: resizedFile }])
+        
+        // Upload to server
         const formData = new FormData()
-        formData.append('file', file)
+        formData.append('file', resizedFile)
         const response = await fetch('/api/upload', { method: 'POST', body: formData })
         const data = await response.json()
+        
         if (data.success && data.url) {
-          setPhotoUrls(prev => [...prev, data.url])
+          newUrls.push(data.url)
         }
       } catch (err) {
         console.error('Upload error:', err)
+        toast.error('Failed to upload image')
       }
     }
     
+    // Update uploaded URLs
+    setUploadedUrls(prev => [...prev, ...newUrls])
+    setPhotoUrls(prev => [...prev, ...newUrls])
     setIsUploading(false)
   }
 
@@ -87,10 +140,21 @@ const CheckInModal = ({ venue, isOpen, onClose, onComplete }) => {
       return
     }
     
+    // Wait if still uploading
+    if (isUploading) {
+      toast.error('Please wait for photos to finish uploading')
+      return
+    }
+    
     setIsSubmitting(true)
     if (navigator.vibrate) navigator.vibrate([50, 50, 50])
     
     try {
+      // Use the collected uploaded URLs
+      const finalPhotoUrls = [...uploadedUrls, ...photoUrls].filter((url, index, self) => 
+        url && self.indexOf(url) === index // Remove duplicates and empty
+      )
+      
       // ACTUALLY SAVE TO API
       const response = await fetch('/api/checkins', {
         method: 'POST',
