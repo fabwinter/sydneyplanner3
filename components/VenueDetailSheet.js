@@ -289,9 +289,12 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
     if (!venue) return
     setIsLoadingCheckins(true)
     try {
-      const response = await fetch(`/api/checkins?user_id=anonymous&venue_id=${venue.id}`)
+      const response = await fetch(`/api/checkins?user_id=anonymous`)
       const data = await response.json()
-      const checkins = (data.checkins || []).filter(c => c.venue_id === venue.id)
+      // Match by venue_name since venue IDs can be dynamic
+      const checkins = (data.checkins || []).filter(c => 
+        c.venue_name?.toLowerCase() === venue.name?.toLowerCase()
+      )
       setVenueCheckins(checkins)
       setCurrentVisitIndex(0)
     } catch (err) {
