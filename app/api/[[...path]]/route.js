@@ -654,7 +654,7 @@ async function handleRoute(request, { params }) {
         const bytes = await file.arrayBuffer()
         const buffer = Buffer.from(bytes)
 
-        // Upload to Supabase Storage
+        // Try Supabase Storage first
         const { data, error } = await supabase.storage
           .from('photos')
           .upload(filePath, buffer, {
@@ -664,17 +664,29 @@ async function handleRoute(request, { params }) {
 
         if (error) {
           console.log('Supabase storage error:', error.message)
-          // If storage bucket doesn't exist or fails, return a placeholder URL
-          // In production, you would create the bucket or use another storage solution
-          const placeholderUrl = `https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=400&fit=crop`
+          
+          // Fallback: Store as base64 data URL (smaller images)
+          // For larger images, consider using a cloud storage service
+          const base64 = buffer.toString('base64')
+          const dataUrl = `data:${file.type};base64,${base64}`
+          
+          // If the data URL is too large (> 500KB), use a placeholder
+          if (dataUrl.length > 500000) {
+            return handleCORS(NextResponse.json({
+              success: true,
+              url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=400&fit=crop',
+              note: 'Image too large - using placeholder'
+            }))
+          }
+          
           return handleCORS(NextResponse.json({
             success: true,
-            url: placeholderUrl,
-            note: 'Using placeholder - Supabase Storage not configured'
+            url: dataUrl,
+            note: 'Stored as base64'
           }))
         }
 
-        // Get public URL
+        // Get public URL from Supabase
         const { data: { publicUrl } } = supabase.storage
           .from('photos')
           .getPublicUrl(filePath)
@@ -686,11 +698,10 @@ async function handleRoute(request, { params }) {
         }))
       } catch (uploadError) {
         console.error('Upload error:', uploadError)
-        // Return placeholder on error
         return handleCORS(NextResponse.json({
-          success: true,
-          url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=400&fit=crop',
-          note: 'Using placeholder due to upload error'
+          success: false,
+          error: 'Upload failed',
+          url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=400&fit=crop'
         }))
       }
     }
