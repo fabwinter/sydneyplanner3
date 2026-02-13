@@ -6,7 +6,7 @@ import {
   MapPin, Star, Heart, ChevronDown, ChevronRight, ChevronLeft,
   Clock, Phone, Globe, Wifi, Car, Accessibility, UtensilsCrossed, 
   PawPrint, ExternalLink, ListPlus, Share2, Check, Navigation,
-  X, Camera, ImagePlus, Loader2, LogIn, MapPinned, Calendar
+  X, Camera, ImagePlus, Loader2, LogIn, MapPinned, Calendar, Edit3, Trash2
 } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { useRouter } from 'next/navigation'
