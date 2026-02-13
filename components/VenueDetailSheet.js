@@ -279,6 +279,58 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
     fetchVenueCheckins()
   }
 
+  // Edit check-in
+  const handleEditCheckin = (checkin) => {
+    setEditingCheckin(checkin)
+    setShowEditModal(true)
+  }
+
+  // Delete check-in
+  const handleDeleteCheckin = async (checkinId) => {
+    if (!confirm('Delete this check-in?')) return
+    
+    try {
+      const response = await fetch(`/api/checkins/${checkinId}`, {
+        method: 'DELETE'
+      })
+      const data = await response.json()
+      
+      if (data.success) {
+        toast.success('Check-in deleted')
+        fetchVenueCheckins() // Refresh the list
+      } else {
+        toast.error(data.error || 'Failed to delete check-in')
+      }
+    } catch (err) {
+      console.error('Delete error:', err)
+      toast.error('Failed to delete check-in')
+    }
+  }
+
+  // Save edited check-in
+  const handleSaveEdit = async (checkinId, rating, comment) => {
+    try {
+      const response = await fetch(`/api/checkins/${checkinId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating, comment })
+      })
+      const data = await response.json()
+      
+      if (data.success) {
+        toast.success('Check-in updated')
+        setShowEditModal(false)
+        setEditingCheckin(null)
+        fetchVenueCheckins() // Refresh
+      } else {
+        toast.error(data.error || 'Failed to update check-in')
+      }
+    } catch (err) {
+      console.error('Update error:', err)
+      toast.error('Failed to update check-in')
+    }
+  }
+
   const handleGetDirections = () => {
     if (navigator.vibrate) navigator.vibrate(30)
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
