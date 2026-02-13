@@ -441,8 +441,6 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
                           </div>
                         </div>
                       )}
-                        </div>
-                      )}
                     </div>
                   )}
 
