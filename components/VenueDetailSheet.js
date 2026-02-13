@@ -183,6 +183,7 @@ const CheckInModal = ({ venue, isOpen, onClose, onComplete }) => {
         setComment('')
         setPhotos([])
         setPhotoUrls([])
+        setUploadedUrls([])
         onComplete(data)
         onClose()
       } else {
