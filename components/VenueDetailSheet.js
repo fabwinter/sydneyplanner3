@@ -200,6 +200,74 @@ const CheckInModal = ({ venue, isOpen, onClose, onComplete }) => {
   )
 }
 
+// Edit Check-in Modal
+const EditCheckinModal = ({ checkin, isOpen, onClose, onSave }) => {
+  const [rating, setRating] = useState(checkin?.rating || 0)
+  const [comment, setComment] = useState(checkin?.comment || '')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (checkin) {
+      setRating(checkin.rating || 0)
+      setComment(checkin.comment || '')
+    }
+  }, [checkin])
+
+  if (!checkin || !isOpen) return null
+
+  const handleSubmit = async () => {
+    if (rating === 0) {
+      toast.error('Please select a rating')
+      return
+    }
+    
+    setIsSubmitting(true)
+    await onSave(checkin.id, rating, comment)
+    setIsSubmitting(false)
+  }
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/50 z-[3500]" />
+          <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl z-[3501] max-h-[70vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Edit Check-In</h2>
+              <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"><X className="w-5 h-5 text-gray-500" /></button>
+            </div>
+            <div className="p-4">
+              <div className="mb-5">
+                <p className="text-center font-medium text-gray-700 dark:text-gray-300 mb-2 text-sm">Your Rating *</p>
+                <div className="flex justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button key={star} onClick={() => setRating(star)} className="p-1">
+                      <Star className={`w-9 h-9 transition-colors ${star <= rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300 dark:text-gray-600'}`} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mb-5">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="font-medium text-gray-700 dark:text-gray-300 text-sm">Comment</p>
+                  <span className="text-xs text-gray-400">{comment.length}/300</span>
+                </div>
+                <textarea value={comment} onChange={(e) => setComment(e.target.value.slice(0, 300))} placeholder="Update your experience..." className="w-full h-24 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 border-0 resize-none text-gray-700 dark:text-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-[#00A8CC] text-sm" />
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex gap-3 safe-bottom">
+              <button onClick={onClose} className="flex-1 h-11 rounded-xl border border-gray-300 dark:border-gray-600 font-medium text-gray-700 dark:text-gray-300 text-sm">Cancel</button>
+              <button onClick={handleSubmit} disabled={isSubmitting || rating === 0} className="flex-1 h-11 rounded-xl bg-[#00A8CC] text-white font-medium disabled:opacity-50 flex items-center justify-center gap-2 text-sm">
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
+              </button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
 const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
   const { isAuthenticated } = useAuth()
   const [saved, setSaved] = useState(false)
