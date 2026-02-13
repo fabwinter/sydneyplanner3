@@ -500,6 +500,55 @@ async function handleRoute(request, { params }) {
       }
     }
 
+    // Update check-in - PATCH /api/checkins/:id
+    if (route.startsWith('/checkins/') && method === 'PATCH') {
+      const checkinId = path[1]
+      
+      if (!checkinId) {
+        return handleCORS(NextResponse.json(
+          { error: "Check-in ID is required" },
+          { status: 400 }
+        ))
+      }
+
+      try {
+        const body = await request.json()
+        const { rating, comment, photos } = body
+        
+        const database = await connectToMongo()
+        
+        // Build update object
+        const updateFields = {}
+        if (rating !== undefined) updateFields.rating = rating
+        if (comment !== undefined) updateFields.comment = comment
+        if (photos !== undefined) updateFields.photos = photos
+        updateFields.updated_at = new Date().toISOString()
+        
+        const result = await database.collection('checkins').updateOne(
+          { id: checkinId },
+          { $set: updateFields }
+        )
+        
+        if (result.matchedCount === 0) {
+          return handleCORS(NextResponse.json(
+            { error: "Check-in not found" },
+            { status: 404 }
+          ))
+        }
+
+        return handleCORS(NextResponse.json({
+          success: true,
+          message: 'Check-in updated successfully'
+        }))
+      } catch (err) {
+        console.error('Update check-in error:', err)
+        return handleCORS(NextResponse.json(
+          { error: "Failed to update check-in" },
+          { status: 500 }
+        ))
+      }
+    }
+
     // Save venue - POST /api/saves
     if (route === '/saves' && method === 'POST') {
       const body = await request.json()
