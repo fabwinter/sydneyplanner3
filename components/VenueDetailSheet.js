@@ -358,7 +358,7 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
 
                   {/* Your Visits Section - NEW */}
                   {totalVisits > 0 && (
-                    <div className="mb-5 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                    <div className="mb-5 p-4 rounded-2xl bg-[#E8F7FA] dark:bg-gray-800 border border-[#00A8CC]/20 dark:border-gray-700">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-5 h-5 text-[#00A8CC]" />
@@ -407,15 +407,40 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
                             </div>
                           </div>
                           {currentVisit.comment && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400 italic mb-2">"{currentVisit.comment}"</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 italic mb-2 bg-white dark:bg-gray-900 rounded-xl p-3">"{currentVisit.comment}"</p>
                           )}
+                          
+                          {/* User Photos */}
                           {currentVisit.photos && currentVisit.photos.length > 0 && (
-                            <div className="flex gap-2 overflow-x-auto">
-                              {currentVisit.photos.filter(p => p.startsWith('http')).map((photo, i) => (
-                                <img key={i} src={photo} alt="" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
-                              ))}
+                            <div className="mb-3">
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Your Photos</p>
+                              <div className="flex gap-2 overflow-x-auto pb-2">
+                                {currentVisit.photos.filter(p => p && (p.startsWith('http') || p.startsWith('data:'))).map((photo, i) => (
+                                  <img key={i} src={photo} alt="" className="w-24 h-24 rounded-xl object-cover flex-shrink-0 shadow-sm" />
+                                ))}
+                              </div>
                             </div>
                           )}
+                          
+                          {/* Edit and Delete buttons */}
+                          <div className="flex items-center gap-4 pt-2 border-t border-gray-200 dark:border-gray-600">
+                            <button 
+                              onClick={() => handleEditCheckin(currentVisit)}
+                              className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-[#00A8CC]"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteCheckin(currentVisit.id)}
+                              className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-red-500"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      )}
                         </div>
                       )}
                     </div>
