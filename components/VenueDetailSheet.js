@@ -643,6 +643,7 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
       </AnimatePresence>
 
       <CheckInModal venue={venue} isOpen={showCheckIn} onClose={() => setShowCheckIn(false)} onComplete={handleCheckInComplete} />
+      <EditCheckinModal checkin={editingCheckin} isOpen={showEditModal} onClose={() => { setShowEditModal(false); setEditingCheckin(null); }} onSave={handleSaveEdit} />
       <SignInPrompt isOpen={showSignInPrompt} onClose={() => setShowSignInPrompt(false)} action={signInAction} />
     </>
   )
