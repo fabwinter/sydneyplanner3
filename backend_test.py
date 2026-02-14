@@ -6,7 +6,7 @@ import os
 from io import BytesIO
 
 # Base URL from environment
-BASE_URL = "https://explore-sydney.preview.emergentagent.com/api"
+BASE_URL = "https://sydney-planner-app.preview.emergentagent.com/api"
 
 def test_checkins_api():
     """Test Check-ins API endpoints"""
