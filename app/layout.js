@@ -28,10 +28,12 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <body className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
         <AuthProvider>
           <VenueProvider>
-            {children}
+            <main className="overflow-x-hidden">
+              {children}
+            </main>
             <Toaster position="top-center" richColors />
           </VenueProvider>
         </AuthProvider>
