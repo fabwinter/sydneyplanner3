@@ -54,45 +54,57 @@ const CheckInModal = ({ venue, isOpen, onClose, onComplete }) => {
   if (!venue || !isOpen) return null
 
   // Resize image to max dimension while maintaining aspect ratio
-  const resizeImage = (file, maxSize = 1200) => {
-    return new Promise((resolve) => {
+  // Optimized for mobile: smaller size, better compression
+  const resizeImage = (file, maxSize = 800) => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader()
+      reader.onerror = () => reject(new Error('Failed to read file'))
       reader.onload = (e) => {
         const img = new Image()
+        img.onerror = () => reject(new Error('Failed to load image'))
         img.onload = () => {
-          const canvas = document.createElement('canvas')
-          let { width, height } = img
-          
-          // Calculate new dimensions
-          if (width > height) {
-            if (width > maxSize) {
-              height = (height * maxSize) / width
-              width = maxSize
-            }
-          } else {
-            if (height > maxSize) {
-              width = (width * maxSize) / height
-              height = maxSize
-            }
+          try {
+            const canvas = document.createElement('canvas')
+            let { width, height } = img
+            
+            // Calculate new dimensions - more aggressive resizing
+            const ratio = Math.min(maxSize / width, maxSize / height, 1)
+            width = Math.round(width * ratio)
+            height = Math.round(height * ratio)
+            
+            canvas.width = width
+            canvas.height = height
+            
+            const ctx = canvas.getContext('2d')
+            // Use better image smoothing
+            ctx.imageSmoothingEnabled = true
+            ctx.imageSmoothingQuality = 'high'
+            ctx.drawImage(img, 0, 0, width, height)
+            
+            // Convert to blob with compression (70% quality for smaller files)
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
+                } else {
+                  reject(new Error('Failed to create blob'))
+                }
+                // Clean up
+                canvas.width = 0
+                canvas.height = 0
+              },
+              'image/jpeg',
+              0.7
+            )
+          } catch (err) {
+            reject(err)
           }
-          
-          canvas.width = width
-          canvas.height = height
-          
-          const ctx = canvas.getContext('2d')
-          ctx.drawImage(img, 0, 0, width, height)
-          
-          // Convert to blob with compression
-          canvas.toBlob(
-            (blob) => {
-              resolve(new File([blob], file.name, { type: 'image/jpeg' }))
-            },
-            'image/jpeg',
-            0.8 // 80% quality
-          )
         }
         img.src = e.target.result
       }
+      reader.readAsDataURL(file)
+    })
+  }
       reader.readAsDataURL(file)
     })
   }
