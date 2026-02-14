@@ -554,6 +554,7 @@ const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete }) => {
       try {
         const formData = new FormData()
         formData.append('file', file)
+        formData.append('user_id', 'anonymous') // Replace with actual user ID when auth is implemented
         
         const response = await fetch('/api/upload', {
           method: 'POST',
