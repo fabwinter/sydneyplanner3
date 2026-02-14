@@ -122,9 +122,10 @@ const CheckInModal = ({ venue, isOpen, onClose, onComplete }) => {
         const previewUrl = URL.createObjectURL(resizedFile)
         setPhotos(prev => [...prev, { id: Date.now() + Math.random(), url: previewUrl, file: resizedFile }])
         
-        // Upload to server
+        // Upload to server with user_id for folder structure
         const formData = new FormData()
         formData.append('file', resizedFile)
+        formData.append('user_id', 'anonymous') // Replace with actual user ID when auth is implemented
         const response = await fetch('/api/upload', { method: 'POST', body: formData })
         const data = await response.json()
         
