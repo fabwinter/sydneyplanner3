@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Search, Star, Heart, ChevronRight, ChevronDown,
-  Clock, MessageCircle, User, Map, Loader2, Navigation, RotateCcw, List, X
+  Clock, MessageCircle, User, Map, Loader2, Navigation, RotateCcw, List, X, AlertCircle
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
@@ -14,14 +14,34 @@ import dynamic from 'next/dynamic'
 import { useVenues } from '@/lib/VenueContext'
 import VenueDetailSheet from '@/components/VenueDetailSheet'
 
-const MapComponent = dynamic(() => import('@/components/MapComponent'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-      <Loader2 className="w-8 h-8 animate-spin text-[#00A8CC]" />
-    </div>
-  )
-})
+// Error Boundary for Map
+const MapErrorFallback = ({ onRetry }) => (
+  <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 gap-4">
+    <AlertCircle className="w-12 h-12 text-gray-400" />
+    <p className="text-gray-500 text-center">Map failed to load</p>
+    <button 
+      onClick={onRetry}
+      className="px-4 py-2 rounded-lg bg-[#00A8CC] text-white text-sm font-medium"
+    >
+      Retry
+    </button>
+  </div>
+)
+
+const MapComponent = dynamic(
+  () => import('@/components/MapComponent').catch(() => {
+    // Return a fallback component if import fails
+    return ({ onRetry }) => <MapErrorFallback onRetry={onRetry} />
+  }),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+        <Loader2 className="w-8 h-8 animate-spin text-[#00A8CC]" />
+      </div>
+    )
+  }
+)
 
 // Venue List Item Component
 const VenueListItem = ({ venue, onClick, onSave }) => {
