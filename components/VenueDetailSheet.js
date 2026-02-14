@@ -105,9 +105,6 @@ const CheckInModal = ({ venue, isOpen, onClose, onComplete }) => {
       reader.readAsDataURL(file)
     })
   }
-      reader.readAsDataURL(file)
-    })
-  }
 
   const handlePhotoCapture = async (e) => {
     const files = Array.from(e.target.files)
