@@ -638,6 +638,7 @@ async function handleRoute(request, { params }) {
       try {
         const formData = await request.formData()
         const file = formData.get('file')
+        const userId = formData.get('user_id') || 'anonymous'
         
         if (!file) {
           return handleCORS(NextResponse.json(
@@ -646,63 +647,184 @@ async function handleRoute(request, { params }) {
           ))
         }
 
-        // Generate unique filename
-        const fileName = `checkin-${uuidv4()}-${Date.now()}.${file.name.split('.').pop()}`
-        const filePath = `checkin-photos/${fileName}`
-        
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+        if (!allowedTypes.includes(file.type)) {
+          return handleCORS(NextResponse.json(
+            { error: "Invalid file type. Allowed: jpeg, png, webp, gif" },
+            { status: 415 }
+          ))
+        }
+
         // Convert file to buffer
         const bytes = await file.arrayBuffer()
         const buffer = Buffer.from(bytes)
 
-        // Try Supabase Storage first
+        // Validate file size (max 5MB)
+        if (buffer.length > 5 * 1024 * 1024) {
+          return handleCORS(NextResponse.json(
+            { error: "File size exceeds 5MB limit" },
+            { status: 413 }
+          ))
+        }
+
+        // Generate unique filename with user folder structure
+        const timestamp = Date.now()
+        const extension = file.name.split('.').pop() || 'jpg'
+        const fileName = `${timestamp}-${uuidv4().slice(0, 8)}.${extension}`
+        const filePath = `${userId}/${fileName}`
+        
+        console.log('Attempting Supabase Storage upload to checkin-photos bucket...')
+
+        // Try Supabase Storage first - using 'checkin-photos' bucket
         const { data, error } = await supabase.storage
-          .from('photos')
+          .from('checkin-photos')
           .upload(filePath, buffer, {
             contentType: file.type,
+            cacheControl: '3600',
             upsert: false
           })
 
         if (error) {
           console.log('Supabase storage error:', error.message)
+          console.log('Supabase storage error code:', error.statusCode || error.status)
           
-          // Fallback: Store as base64 data URL (smaller images)
-          // For larger images, consider using a cloud storage service
+          // Check if it's a bucket not found error - try creating it
+          if (error.message?.includes('not found') || error.message?.includes('Bucket')) {
+            console.log('Bucket may not exist, attempting with fallback storage...')
+          }
+          
+          // Fallback: Store in MongoDB with base64
+          // Compress the data URL to reasonable size
           const base64 = buffer.toString('base64')
           const dataUrl = `data:${file.type};base64,${base64}`
           
-          // If the data URL is too large (> 500KB), use a placeholder
+          // If the data URL is too large (> 500KB), return error
           if (dataUrl.length > 500000) {
             return handleCORS(NextResponse.json({
-              success: true,
-              url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=400&fit=crop',
-              note: 'Image too large - using placeholder'
-            }))
+              success: false,
+              error: 'Image too large for base64 storage. Please use a smaller image.',
+              note: 'Configure Supabase Storage bucket for larger files'
+            }, { status: 413 }))
           }
           
+          // Store as base64 data URL
           return handleCORS(NextResponse.json({
             success: true,
             url: dataUrl,
-            note: 'Stored as base64'
+            storage: 'base64',
+            note: 'Stored as base64 (Supabase bucket not configured)'
           }))
         }
 
-        // Get public URL from Supabase
-        const { data: { publicUrl } } = supabase.storage
-          .from('photos')
-          .getPublicUrl(filePath)
+        console.log('Supabase upload successful:', data.path)
+
+        // Generate signed URL for private bucket access (valid for 1 year)
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+          .from('checkin-photos')
+          .createSignedUrl(filePath, 31536000) // 1 year in seconds
+
+        if (signedUrlError) {
+          console.log('Error creating signed URL:', signedUrlError.message)
+          // Fall back to public URL
+          const { data: publicUrlData } = supabase.storage
+            .from('checkin-photos')
+            .getPublicUrl(filePath)
+          
+          return handleCORS(NextResponse.json({
+            success: true,
+            url: publicUrlData.publicUrl,
+            path: filePath,
+            storage: 'supabase'
+          }))
+        }
 
         return handleCORS(NextResponse.json({
           success: true,
-          url: publicUrl,
-          path: filePath
+          url: signedUrlData.signedUrl,
+          path: filePath,
+          storage: 'supabase'
         }))
       } catch (uploadError) {
         console.error('Upload error:', uploadError)
         return handleCORS(NextResponse.json({
           success: false,
-          error: 'Upload failed',
-          url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=400&fit=crop'
+          error: 'Upload failed: ' + uploadError.message
+        }, { status: 500 }))
+      }
+    }
+
+    // Get signed URL for a photo - GET /api/photos/signed-url?path=...
+    if (route === '/photos/signed-url' && method === 'GET') {
+      const url = new URL(request.url)
+      const filePath = url.searchParams.get('path')
+      const expiresIn = parseInt(url.searchParams.get('expires_in') || '3600')
+      
+      if (!filePath) {
+        return handleCORS(NextResponse.json(
+          { error: "File path is required" },
+          { status: 400 }
+        ))
+      }
+
+      try {
+        const { data, error } = await supabase.storage
+          .from('checkin-photos')
+          .createSignedUrl(filePath, expiresIn)
+
+        if (error) {
+          return handleCORS(NextResponse.json(
+            { error: error.message },
+            { status: 500 }
+          ))
+        }
+
+        return handleCORS(NextResponse.json({
+          success: true,
+          signedUrl: data.signedUrl,
+          path: filePath,
+          expiresIn
         }))
+      } catch (err) {
+        return handleCORS(NextResponse.json(
+          { error: 'Failed to generate signed URL' },
+          { status: 500 }
+        ))
+      }
+    }
+
+    // Delete a photo - DELETE /api/photos/:path
+    if (route.startsWith('/photos/') && method === 'DELETE') {
+      const filePath = decodeURIComponent(path.slice(1).join('/'))
+      
+      if (!filePath) {
+        return handleCORS(NextResponse.json(
+          { error: "File path is required" },
+          { status: 400 }
+        ))
+      }
+
+      try {
+        const { error } = await supabase.storage
+          .from('checkin-photos')
+          .remove([filePath])
+
+        if (error) {
+          return handleCORS(NextResponse.json(
+            { error: error.message },
+            { status: 500 }
+          ))
+        }
+
+        return handleCORS(NextResponse.json({
+          success: true,
+          deleted: filePath
+        }))
+      } catch (err) {
+        return handleCORS(NextResponse.json(
+          { error: 'Failed to delete photo' },
+          { status: 500 }
+        ))
       }
     }
 
