@@ -14,15 +14,24 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
 
-// Dynamic import for map
-const MapComponent = dynamic(() => import('@/components/MapComponent'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-      <Loader2 className="w-8 h-8 animate-spin text-[#00A8CC]" />
-    </div>
-  )
-})
+// Dynamic import for map with error handling
+const MapComponent = dynamic(
+  () => import('@/components/MapComponent').catch(() => {
+    return () => (
+      <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+        <p className="text-gray-500">Map unavailable</p>
+      </div>
+    )
+  }),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+        <Loader2 className="w-8 h-8 animate-spin text-[#00A8CC]" />
+      </div>
+    )
+  }
+)
 
 // Category icon mapping
 const categoryIcons = {
