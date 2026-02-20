@@ -1,22 +1,21 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useCallback, useRef, useContext, Suspense } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Star, Clock, Filter, Calendar, ChevronDown, ChevronLeft, ChevronRight,
-  MessageCircle, User, Map, Heart, Coffee, Umbrella, Building2,
+  MessageCircle, User, Map, Heart, Coffee, Umbrella,
   TreePine, Landmark, Sparkles, UtensilsCrossed, X, ArrowRight, List, Loader2, Navigation,
-  MapPin, Phone, Globe, Share2, Bookmark, Camera, Image as ImageIcon, Plus, RefreshCw, Trash2
+  MapPin, Phone, Globe, Share2, Camera, RefreshCw, Trash2, LogIn
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import dynamicImport from 'next/dynamic'
 import { toast } from 'sonner'
-import { AuthContext } from '@/lib/AuthContext'
+import { useAuth } from '@/lib/AuthContext'
+import { authFetch } from '@/lib/api'
 
-// Dynamic import for map with error handling
 const MapComponent = dynamicImport(
   () => import('@/components/MapComponent').catch(() => {
     return () => (
@@ -35,7 +34,6 @@ const MapComponent = dynamicImport(
   }
 )
 
-// Category icon mapping
 const categoryIcons = {
   'Cafe': Coffee,
   'Restaurant': UtensilsCrossed,
@@ -54,16 +52,13 @@ const categoryColors = {
   'Attraction': '#EC4899',
 }
 
-// Format date helper - only used after client mount
 const formatDate = (date) => {
   if (!date) return ''
   const today = new Date()
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
-  
   if (date.toDateString() === today.toDateString()) return 'Today'
   if (date.toDateString() === yesterday.toDateString()) return 'Yesterday'
-  
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]}`
@@ -81,7 +76,6 @@ const formatFullDate = (date) => {
   return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`
 }
 
-// Group checkins by date
 const groupByDate = (checkins) => {
   const groups = {}
   checkins.forEach(checkin => {
@@ -95,16 +89,15 @@ const groupByDate = (checkins) => {
   return Object.values(groups).sort((a, b) => b.date - a.date)
 }
 
-// Date Range Picker Modal - TEAL colors
 const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRangeSelect }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selecting, setSelecting] = useState('start')
   const [tempStartDate, setTempStartDate] = useState(startDate)
   const [tempEndDate, setTempEndDate] = useState(endDate)
-  
+
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
   const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-  
+
   const getDaysInMonth = (date) => {
     const year = date.getFullYear()
     const month = date.getMonth()
@@ -112,13 +105,12 @@ const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRange
     const lastDay = new Date(year, month + 1, 0)
     const daysInMonth = lastDay.getDate()
     const startingDay = firstDay.getDay()
-    
     const daysArray = []
     for (let i = 0; i < startingDay; i++) daysArray.push(null)
     for (let i = 1; i <= daysInMonth; i++) daysArray.push(new Date(year, month, i))
     return daysArray
   }
-  
+
   const handleDateClick = (date) => {
     if (!date) return
     if (selecting === 'start') {
@@ -135,7 +127,7 @@ const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRange
       setSelecting('start')
     }
   }
-  
+
   const isInRange = (date) => date && tempStartDate && tempEndDate && date >= tempStartDate && date <= tempEndDate
   const isStartDate = (date) => date && tempStartDate && date.toDateString() === tempStartDate.toDateString()
   const isEndDate = (date) => date && tempEndDate && date.toDateString() === tempEndDate.toDateString()
@@ -158,7 +150,6 @@ const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRange
               <p className="font-semibold text-gray-900 dark:text-white">{tempEndDate ? formatShortDate(tempEndDate) : 'Select'}</p>
             </div>
           </div>
-          
           <div className="flex items-center justify-between mb-4">
             <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700">
               <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
@@ -168,11 +159,9 @@ const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRange
               <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300" />
             </button>
           </div>
-          
           <div className="grid grid-cols-7 gap-1 mb-2">
             {days.map(day => <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">{day}</div>)}
           </div>
-          
           <div className="grid grid-cols-7 gap-1">
             {getDaysInMonth(currentMonth).map((date, index) => (
               <button key={index} onClick={() => handleDateClick(date)} disabled={!date} className={`
@@ -187,7 +176,6 @@ const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRange
               </button>
             ))}
           </div>
-          
           <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
             <button onClick={() => { setTempStartDate(null); setTempEndDate(null); onDateRangeSelect(null, null); onClose(); }} className="flex-1 h-10 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium">Clear</button>
             <button onClick={() => { onDateRangeSelect(tempStartDate, tempEndDate); onClose(); }} className="flex-1 h-10 rounded-xl bg-[#00A8CC] text-white font-medium">Apply</button>
@@ -198,14 +186,13 @@ const DateRangePickerModal = ({ isOpen, onClose, startDate, endDate, onDateRange
   )
 }
 
-// Enhanced Check-in Detail Sheet with Full Venue Info
 const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain, onDelete }) => {
   const [activeTab, setActiveTab] = useState('checkin')
   const [saved, setSaved] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  
+
   if (!checkin || !isOpen) return null
-  
+
   const CategoryIcon = categoryIcons[checkin.venue.category] || Sparkles
   const categoryColor = categoryColors[checkin.venue.category] || '#6B7280'
 
@@ -217,31 +204,23 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain, onDelete
 
   const handleCheckInAgain = () => {
     if (navigator.vibrate) navigator.vibrate(50)
-    toast.success('Opening check-in...')
     if (onCheckInAgain) onCheckInAgain(checkin.venue)
   }
 
   const handleShare = () => {
     if (navigator.share) {
-      navigator.share({
-        title: checkin.venue.name,
-        text: `Check out ${checkin.venue.name} in Sydney!`,
-        url: window.location.href,
-      })
+      navigator.share({ title: checkin.venue.name, text: `Check out ${checkin.venue.name} in Sydney!`, url: window.location.href })
     } else {
       toast.success('Link copied!')
     }
   }
 
   const handleDirections = () => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${checkin.venue.lat},${checkin.venue.lng}`
-    window.open(url, '_blank')
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${checkin.venue.lat},${checkin.venue.lng}`, '_blank')
   }
 
   const handleDelete = () => {
-    if (onDelete) {
-      onDelete(checkin.id)
-    }
+    if (onDelete) onDelete(checkin.id)
     setShowDeleteConfirm(false)
   }
 
@@ -252,9 +231,7 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain, onDelete
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/50 z-[2000]" />
           <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl z-[2001] max-h-[90vh] overflow-hidden">
             <div className="flex justify-center pt-3 pb-2"><div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" /></div>
-            
             <div className="overflow-y-auto max-h-[calc(90vh-60px)] pb-8">
-              {/* Hero Image */}
               <div className="relative h-52">
                 <img src={checkin.photos?.[0] || checkin.venue.image} alt={checkin.venue.name} className="w-full h-full object-cover" />
                 <button onClick={onClose} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
@@ -279,24 +256,18 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain, onDelete
                   <h2 className="text-2xl font-bold text-white">{checkin.venue.name}</h2>
                 </div>
               </div>
-              
-              {/* Tab Toggle */}
+
               <div className="px-4 pt-4">
                 <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 mb-4">
-                  <button onClick={() => setActiveTab('checkin')} className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'checkin' ? 'bg-white dark:bg-gray-700 text-[#00A8CC] shadow-sm' : 'text-gray-500'}`}>
-                    Your Check-in
-                  </button>
-                  <button onClick={() => setActiveTab('venue')} className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'venue' ? 'bg-white dark:bg-gray-700 text-[#00A8CC] shadow-sm' : 'text-gray-500'}`}>
-                    Venue Details
-                  </button>
+                  <button onClick={() => setActiveTab('checkin')} className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'checkin' ? 'bg-white dark:bg-gray-700 text-[#00A8CC] shadow-sm' : 'text-gray-500'}`}>Your Check-in</button>
+                  <button onClick={() => setActiveTab('venue')} className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'venue' ? 'bg-white dark:bg-gray-700 text-[#00A8CC] shadow-sm' : 'text-gray-500'}`}>Venue Details</button>
                 </div>
               </div>
-              
+
               <div className="px-4">
                 <AnimatePresence mode="wait">
                   {activeTab === 'checkin' ? (
                     <motion.div key="checkin" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
-                      {/* Check-in Info */}
                       <div className="p-4 rounded-2xl bg-[#00A8CC]/10 border border-[#00A8CC]/20 mb-4">
                         <h3 className="text-sm font-semibold text-[#00A8CC] mb-3">Your Check-in</h3>
                         <div className="flex items-center justify-between mb-3">
@@ -323,8 +294,6 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain, onDelete
                           </div>
                         )}
                       </div>
-                      
-                      {/* Photos */}
                       {checkin.photos && checkin.photos.length > 0 && (
                         <div className="mb-4">
                           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Your Photos</h3>
@@ -340,140 +309,76 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain, onDelete
                     </motion.div>
                   ) : (
                     <motion.div key="venue" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                      {/* About */}
                       <div className="mb-4">
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">About</h3>
                         <p className="text-gray-600 dark:text-gray-400">{checkin.venue.description}</p>
                       </div>
-                      
-                      {/* Quick Info */}
                       <div className="mb-4 space-y-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                            <MapPin className="w-5 h-5 text-gray-500" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm text-gray-500">Address</p>
-                            <p className="text-gray-900 dark:text-white font-medium">{checkin.venue.address}</p>
-                          </div>
+                          <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center"><MapPin className="w-5 h-5 text-gray-500" /></div>
+                          <div className="flex-1"><p className="text-sm text-gray-500">Address</p><p className="text-gray-900 dark:text-white font-medium">{checkin.venue.address}</p></div>
                         </div>
-                        
                         {checkin.venue.hours && (
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                              <Clock className="w-5 h-5 text-gray-500" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm text-gray-500">Hours</p>
-                              <p className="text-gray-900 dark:text-white font-medium">{checkin.venue.hours}</p>
-                            </div>
+                            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center"><Clock className="w-5 h-5 text-gray-500" /></div>
+                            <div className="flex-1"><p className="text-sm text-gray-500">Hours</p><p className="text-gray-900 dark:text-white font-medium">{checkin.venue.hours}</p></div>
                           </div>
                         )}
-                        
                         {checkin.venue.phone && (
                           <a href={`tel:${checkin.venue.phone}`} className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                              <Phone className="w-5 h-5 text-gray-500" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm text-gray-500">Phone</p>
-                              <p className="text-[#00A8CC] font-medium">{checkin.venue.phone}</p>
-                            </div>
+                            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center"><Phone className="w-5 h-5 text-gray-500" /></div>
+                            <div className="flex-1"><p className="text-sm text-gray-500">Phone</p><p className="text-[#00A8CC] font-medium">{checkin.venue.phone}</p></div>
                           </a>
                         )}
-                        
                         {checkin.venue.website && (
                           <a href={checkin.venue.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                              <Globe className="w-5 h-5 text-gray-500" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm text-gray-500">Website</p>
-                              <p className="text-[#00A8CC] font-medium truncate">{checkin.venue.website.replace('https://', '')}</p>
-                            </div>
+                            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center"><Globe className="w-5 h-5 text-gray-500" /></div>
+                            <div className="flex-1"><p className="text-sm text-gray-500">Website</p><p className="text-[#00A8CC] font-medium truncate">{checkin.venue.website.replace('https://', '')}</p></div>
                           </a>
                         )}
                       </div>
-                      
-                      {/* Amenities */}
                       {checkin.venue.amenities && checkin.venue.amenities.length > 0 && (
                         <div className="mb-4">
                           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Amenities</h3>
                           <div className="flex flex-wrap gap-2">
                             {checkin.venue.amenities.map((amenity, idx) => (
-                              <span key={idx} className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300">
-                                {amenity}
-                              </span>
+                              <span key={idx} className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300">{amenity}</span>
                             ))}
                           </div>
                         </div>
                       )}
-                      
-                      {/* Mini Map */}
                       <div className="mb-4">
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Location</h3>
                         <div className="rounded-2xl overflow-hidden h-40 relative">
-                          <iframe
-                            src={`https://www.openstreetmap.org/export/embed.html?bbox=${checkin.venue.lng - 0.01}%2C${checkin.venue.lat - 0.006}%2C${checkin.venue.lng + 0.01}%2C${checkin.venue.lat + 0.006}&layer=mapnik&marker=${checkin.venue.lat}%2C${checkin.venue.lng}`}
-                            className="w-full h-full border-0"
-                          />
+                          <iframe src={`https://www.openstreetmap.org/export/embed.html?bbox=${checkin.venue.lng - 0.01}%2C${checkin.venue.lat - 0.006}%2C${checkin.venue.lng + 0.01}%2C${checkin.venue.lat + 0.006}&layer=mapnik&marker=${checkin.venue.lat}%2C${checkin.venue.lng}`} className="w-full h-full border-0" />
                           <button onClick={handleDirections} className="absolute bottom-3 right-3 px-4 py-2 rounded-lg bg-[#00A8CC] text-white text-sm font-medium flex items-center gap-2 shadow-lg">
-                            <Navigation className="w-4 h-4" />
-                            Directions
+                            <Navigation className="w-4 h-4" />Directions
                           </button>
                         </div>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
-                
-                {/* Actions */}
+
                 <div className="flex gap-3 pt-4 pb-4">
-                  <button 
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="w-12 h-12 rounded-xl border border-red-200 dark:border-red-800 text-red-500 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                  >
+                  <button onClick={() => setShowDeleteConfirm(true)} className="w-12 h-12 rounded-xl border border-red-200 dark:border-red-800 text-red-500 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                     <Trash2 className="w-5 h-5" />
                   </button>
-                  <button 
-                    onClick={handleSave}
-                    className={`flex-1 h-12 rounded-xl border font-medium flex items-center justify-center gap-2 transition-all ${
-                      saved ? 'bg-red-50 border-red-200 text-red-500' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    <Heart className={`w-5 h-5 ${saved ? 'fill-current' : ''}`} />
-                    {saved ? 'Saved' : 'Save'}
+                  <button onClick={handleSave} className={`flex-1 h-12 rounded-xl border font-medium flex items-center justify-center gap-2 transition-all ${saved ? 'bg-red-50 border-red-200 text-red-500' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'}`}>
+                    <Heart className={`w-5 h-5 ${saved ? 'fill-current' : ''}`} />{saved ? 'Saved' : 'Save'}
                   </button>
-                  <button 
-                    onClick={handleCheckInAgain}
-                    className="flex-1 h-12 rounded-xl bg-[#00A8CC] text-white font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform"
-                  >
+                  <button onClick={handleCheckInAgain} className="flex-1 h-12 rounded-xl bg-[#00A8CC] text-white font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform">
                     <Clock className="w-5 h-5" />Check-in Again
                   </button>
                 </div>
 
-                {/* Delete Confirmation */}
                 {showDeleteConfirm && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }} 
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 mb-4"
-                  >
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 mb-4">
                     <p className="text-red-700 dark:text-red-300 font-medium mb-3">Delete this check-in?</p>
                     <p className="text-red-600/70 dark:text-red-400/70 text-sm mb-4">This action cannot be undone.</p>
                     <div className="flex gap-2">
-                      <button 
-                        onClick={() => setShowDeleteConfirm(false)}
-                        className="flex-1 h-10 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium"
-                      >
-                        Cancel
-                      </button>
-                      <button 
-                        onClick={handleDelete}
-                        className="flex-1 h-10 rounded-xl bg-red-500 text-white font-medium"
-                      >
-                        Delete
-                      </button>
+                      <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 h-10 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium">Cancel</button>
+                      <button onClick={handleDelete} className="flex-1 h-10 rounded-xl bg-red-500 text-white font-medium">Delete</button>
                     </div>
                   </motion.div>
                 )}
@@ -486,11 +391,9 @@ const CheckinDetailSheet = ({ checkin, isOpen, onClose, onCheckInAgain, onDelete
   )
 }
 
-// Check-in Card Component
 const CheckinCard = ({ checkin, onClick }) => {
   const CategoryIcon = categoryIcons[checkin.venue?.category] || Sparkles
   const categoryColor = categoryColors[checkin.venue?.category] || '#6B7280'
-
   if (!checkin.venue) return null
 
   return (
@@ -504,7 +407,7 @@ const CheckinCard = ({ checkin, onClick }) => {
         </div>
         <div className="flex-1 p-3 min-w-0">
           <h3 className="font-bold text-gray-900 dark:text-white truncate">{checkin.venue.name}</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{checkin.venue.category} • {checkin.venue.address}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{checkin.venue.category} - {checkin.venue.address}</p>
           <div className="flex items-center gap-2 mt-1.5">
             <div className="flex items-center gap-0.5">
               <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
@@ -522,77 +425,7 @@ const CheckinCard = ({ checkin, onClick }) => {
   )
 }
 
-// Sign-in Prompt Modal
-const SignInPrompt = ({ isOpen, onClose, onSignIn }) => {
-  const [email, setEmail] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const authContext = useContext(AuthContext)
-  const signInWithEmail = authContext?.signInWithEmail
-
-  const handleSignIn = async () => {
-    if (!email.trim()) {
-      toast.error('Please enter your email')
-      return
-    }
-
-    if (!signInWithEmail) {
-      toast.error('Authentication not available')
-      return
-    }
-
-    setIsLoading(true)
-    try {
-      await signInWithEmail(email, 'Sydney2024!')
-      toast.success('Signed in successfully!')
-      setEmail('')
-      onClose()
-      if (onSignIn) onSignIn()
-    } catch (error) {
-      toast.error(error.message || 'Failed to sign in')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  if (!isOpen) return null
-
-  return (
-    <AnimatePresence>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/50 z-[3500] flex items-center justify-center p-4">
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md p-6 shadow-xl">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Sign In Required</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">You need to be logged in to check in at venues.</p>
-
-          <div className="mb-6">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00A8CC]"
-            />
-            <p className="text-xs text-gray-500 mt-2">Demo: Use any email with password: Sydney2024!</p>
-          </div>
-
-          <div className="flex gap-3">
-            <button onClick={onClose} className="flex-1 h-12 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-800">Cancel</button>
-            <button
-              onClick={handleSignIn}
-              disabled={isLoading}
-              className="flex-1 h-12 rounded-xl bg-[#00A8CC] text-white font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign In'}
-            </button>
-          </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
-  )
-}
-
-// Simple Check-in Modal with Photo Upload
-const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete, isAuthenticated }) => {
+const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete }) => {
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -605,121 +438,51 @@ const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete, isAuthe
   const handlePhotoSelect = async (e) => {
     const files = e.target.files
     if (!files || files.length === 0) return
-    
     setIsUploading(true)
     const newPhotos = []
-    
     for (const file of Array.from(files)) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file')
-        continue
-      }
-      
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image must be less than 5MB')
-        continue
-      }
-      
+      if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); continue }
+      if (file.size > 5 * 1024 * 1024) { toast.error('Image must be less than 5MB'); continue }
       try {
         const formData = new FormData()
         formData.append('file', file)
-        formData.append('user_id', 'anonymous') // Replace with actual user ID when auth is implemented
-        
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData
-        })
-        
+        const response = await authFetch('/api/upload', { method: 'POST', body: formData })
         const data = await response.json()
-        
-        if (data.success && data.url) {
-          newPhotos.push(data.url)
-        } else {
-          // Use local preview as fallback
-          const localUrl = URL.createObjectURL(file)
-          newPhotos.push(localUrl)
-        }
+        if (data.success && data.url) { newPhotos.push(data.url) } else { newPhotos.push(URL.createObjectURL(file)) }
       } catch (err) {
-        console.error('Upload error:', err)
-        // Use local preview as fallback
-        const localUrl = URL.createObjectURL(file)
-        newPhotos.push(localUrl)
+        newPhotos.push(URL.createObjectURL(file))
       }
     }
-    
     setPhotos(prev => [...prev, ...newPhotos])
     setIsUploading(false)
-    
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  const removePhoto = (index) => {
-    setPhotos(prev => prev.filter((_, i) => i !== index))
-  }
+  const removePhoto = (index) => { setPhotos(prev => prev.filter((_, i) => i !== index)) }
 
   const handleSubmit = async () => {
-    if (rating === 0) {
-      toast.error('Please select a rating')
-      return
-    }
-
-    if (!isAuthenticated) {
-      toast.error('You must be signed in to check in')
-      return
-    }
-
+    if (rating === 0) { toast.error('Please select a rating'); return }
     setIsSubmitting(true)
     if (navigator.vibrate) navigator.vibrate(50)
-
     try {
-      const { supabase } = await import('@/lib/supabase')
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (!session?.access_token) {
-        toast.error('Authentication token not found. Please sign in again.')
-        return
-      }
-
-      const response = await fetch('/api/checkins', {
+      const response = await authFetch('/api/checkins', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
         body: JSON.stringify({
-          venue_id: venue.id,
-          venue_name: venue.name,
-          venue_category: venue.category,
-          venue_address: venue.address,
-          venue_lat: venue.lat,
-          venue_lng: venue.lng,
-          venue_image: venue.image,
-          rating,
-          comment,
-          photos: photos
+          venue_id: venue.id, venue_name: venue.name, venue_category: venue.category,
+          venue_address: venue.address, venue_lat: venue.lat, venue_lng: venue.lng,
+          venue_image: venue.image, rating, comment, photos
         })
       })
-
       const data = await response.json()
-
       if (data.success) {
         toast.success(`Checked in at ${venue.name}!`)
-        // Reset form
-        setRating(0)
-        setComment('')
-        setPhotos([])
+        setRating(0); setComment(''); setPhotos([])
         if (onCheckinComplete) onCheckinComplete(data)
         onClose()
       } else {
         toast.error(data.error || 'Failed to check in')
       }
     } catch (err) {
-      console.error('Check-in error:', err)
       toast.error('Failed to check in')
     } finally {
       setIsSubmitting(false)
@@ -732,8 +495,7 @@ const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete, isAuthe
         <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-gray-900 rounded-t-3xl w-full max-w-lg p-6 pb-8 max-h-[90vh] overflow-y-auto">
           <div className="flex justify-center mb-4"><div className="w-10 h-1 rounded-full bg-gray-300" /></div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Check in at {venue.name}</h2>
-          <p className="text-sm text-gray-500 mb-6">{venue.category} • {venue.address}</p>
-          
+          <p className="text-sm text-gray-500 mb-6">{venue.category} - {venue.address}</p>
           <div className="mb-4">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Your Rating *</label>
             <div className="flex gap-2">
@@ -744,58 +506,28 @@ const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete, isAuthe
               ))}
             </div>
           </div>
-          
           <div className="mb-4">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Comment (optional)</label>
             <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Share your experience..." className="w-full h-20 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-[#00A8CC]" />
           </div>
-          
-          {/* Photo Upload Section */}
           <div className="mb-6">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Add Photos (optional)</label>
             <div className="flex flex-wrap gap-2">
-              {/* Photo Previews */}
               {photos.map((photo, index) => (
                 <div key={index} className="relative w-20 h-20 rounded-xl overflow-hidden">
                   <img src={photo} alt="" className="w-full h-full object-cover" />
-                  <button 
-                    onClick={() => removePhoto(index)}
-                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 flex items-center justify-center"
-                  >
-                    <X className="w-3 h-3 text-white" />
-                  </button>
+                  <button onClick={() => removePhoto(index)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 flex items-center justify-center"><X className="w-3 h-3 text-white" /></button>
                 </div>
               ))}
-              
-              {/* Add Photo Button */}
               {photos.length < 4 && (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center text-gray-400 hover:border-[#00A8CC] hover:text-[#00A8CC] transition-colors disabled:opacity-50"
-                >
-                  {isUploading ? (
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  ) : (
-                    <>
-                      <Camera className="w-6 h-6 mb-1" />
-                      <span className="text-xs">Add</span>
-                    </>
-                  )}
+                <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center text-gray-400 hover:border-[#00A8CC] hover:text-[#00A8CC] transition-colors disabled:opacity-50">
+                  {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <><Camera className="w-6 h-6 mb-1" /><span className="text-xs">Add</span></>}
                 </button>
               )}
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handlePhotoSelect}
-              className="hidden"
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handlePhotoSelect} className="hidden" />
             <p className="text-xs text-gray-400 mt-2">Max 4 photos, 5MB each</p>
           </div>
-          
           <div className="flex gap-3">
             <button onClick={onClose} className="flex-1 h-12 rounded-xl border border-gray-200 dark:border-gray-700 font-medium text-gray-700 dark:text-gray-300">Cancel</button>
             <button onClick={handleSubmit} disabled={rating === 0 || isSubmitting || isUploading} className="flex-1 h-12 rounded-xl bg-[#00A8CC] text-white font-medium disabled:opacity-50 flex items-center justify-center gap-2">
@@ -808,7 +540,6 @@ const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete, isAuthe
   )
 }
 
-// Bottom Navigation
 const BottomNav = ({ active = 'timeline' }) => {
   const navItems = [
     { id: 'home', icon: MessageCircle, label: 'Chats', href: '/chat' },
@@ -836,14 +567,40 @@ const BottomNav = ({ active = 'timeline' }) => {
   )
 }
 
-const TimelinePageContent = () => {
+const LoginRequiredScreen = () => {
   const router = useRouter()
-  let authContext
-  try {
-    authContext = useContext(AuthContext)
-  } catch (e) {
-    authContext = null
-  }
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
+      <div className="flex flex-col items-center justify-center px-6 pt-24">
+        <div className="w-24 h-24 rounded-full bg-[#00A8CC]/10 flex items-center justify-center mb-6">
+          <Clock className="w-12 h-12 text-[#00A8CC]" />
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-3 text-center">Your Timeline</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-center max-w-sm mb-8 leading-relaxed">
+          Sign in to view your check-in history, track the places you have visited, and relive your Sydney adventures.
+        </p>
+        <button
+          onClick={() => router.push('/login')}
+          className="w-full max-w-sm h-12 rounded-xl bg-[#00A8CC] text-white font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+        >
+          <LogIn className="w-5 h-5" />
+          Sign In to Continue
+        </button>
+        <button
+          onClick={() => router.push('/login')}
+          className="mt-3 text-sm text-[#00A8CC] font-medium"
+        >
+          Don't have an account? Sign up
+        </button>
+      </div>
+      <BottomNav active="timeline" />
+    </motion.div>
+  )
+}
+
+export default function TimelinePage() {
+  const { isAuthenticated, loading } = useAuth()
+  const router = useRouter()
   const [isClient, setIsClient] = useState(false)
   const [viewMode, setViewMode] = useState('list')
   const [searchQuery, setSearchQuery] = useState('')
@@ -857,26 +614,19 @@ const TimelinePageContent = () => {
   const [selectedMapVenue, setSelectedMapVenue] = useState(null)
   const [showCheckInModal, setShowCheckInModal] = useState(false)
   const [checkInVenue, setCheckInVenue] = useState(null)
-  const [showSignInPrompt, setShowSignInPrompt] = useState(false)
-
-  // Real data state
   const [checkins, setCheckins] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  // Fetch check-ins from API
   const fetchCheckins = useCallback(async (showRefreshToast = false) => {
     try {
       if (showRefreshToast) setIsRefreshing(true)
       else setIsLoading(true)
-      
-      const response = await fetch('/api/checkins?user_id=anonymous')
+      const response = await authFetch('/api/checkins')
       const data = await response.json()
-      
       if (data.checkins) {
-        // Transform API data to match UI structure, filter out invalid entries
         const transformedCheckins = data.checkins
-          .filter(checkin => checkin.venue_name && checkin.venue_category) // Filter out incomplete check-ins
+          .filter(checkin => checkin.venue_name && checkin.venue_category)
           .map(checkin => {
             const createdAt = new Date(checkin.created_at)
             const hours = createdAt.getHours()
@@ -884,43 +634,28 @@ const TimelinePageContent = () => {
             const ampm = hours >= 12 ? 'pm' : 'am'
             const displayHours = hours % 12 || 12
             const timeString = `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`
-            
-            // Filter photos to only include valid URLs
-            const validPhotos = (checkin.photos || []).filter(photo => 
+            const validPhotos = (checkin.photos || []).filter(photo =>
               photo && (photo.startsWith('http://') || photo.startsWith('https://') || photo.startsWith('blob:'))
             )
-            
             return {
               id: checkin.id,
               venue: {
-                id: checkin.venue_id,
-                name: checkin.venue_name || 'Unknown Venue',
-                category: checkin.venue_category || 'Other',
-                address: checkin.venue_address || '',
-                lat: checkin.venue_lat || -33.8688,
-                lng: checkin.venue_lng || 151.2093,
-                rating: checkin.rating || 4,
-                distance: '0 km',
+                id: checkin.venue_id, name: checkin.venue_name || 'Unknown Venue',
+                category: checkin.venue_category || 'Other', address: checkin.venue_address || '',
+                lat: checkin.venue_lat || -33.8688, lng: checkin.venue_lng || 151.2093,
+                rating: checkin.rating || 4, distance: '0 km',
                 image: checkin.venue_image || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&h=600&fit=crop',
                 description: `You checked in here on ${createdAt.toLocaleDateString()}`,
-                phone: '',
-                website: '',
-                hours: '',
-                amenities: [],
+                phone: '', website: '', hours: '', amenities: [],
               },
-              rating: checkin.rating,
-              comment: checkin.comment || '',
-              time: timeString,
-              date: createdAt,
-              photos: validPhotos,
+              rating: checkin.rating, comment: checkin.comment || '',
+              time: timeString, date: createdAt, photos: validPhotos,
             }
           })
-        
         setCheckins(transformedCheckins)
         if (showRefreshToast) toast.success('Timeline refreshed!')
       }
     } catch (error) {
-      console.error('Error fetching check-ins:', error)
       toast.error('Failed to load check-ins')
     } finally {
       setIsLoading(false)
@@ -928,17 +663,12 @@ const TimelinePageContent = () => {
     }
   }, [])
 
-  // Delete a check-in
   const deleteCheckin = useCallback(async (checkinId) => {
     try {
-      const response = await fetch(`/api/checkins/${checkinId}`, {
-        method: 'DELETE'
-      })
+      const response = await authFetch(`/api/checkins/${checkinId}`, { method: 'DELETE' })
       const data = await response.json()
-      
       if (data.success) {
         toast.success('Check-in deleted')
-        // Remove from local state
         setCheckins(prev => prev.filter(c => c.id !== checkinId))
         setShowCheckinDetail(false)
         setSelectedCheckin(null)
@@ -946,49 +676,32 @@ const TimelinePageContent = () => {
         toast.error(data.error || 'Failed to delete check-in')
       }
     } catch (error) {
-      console.error('Error deleting check-in:', error)
       toast.error('Failed to delete check-in')
     }
   }, [])
 
-  // Only compute dates on client side to avoid hydration mismatch
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-  
-  // Fetch check-ins on mount
-  useEffect(() => {
-    if (isClient) {
-      fetchCheckins()
-    }
-  }, [isClient, fetchCheckins])
+  useEffect(() => { setIsClient(true) }, [])
 
-  // Use real check-ins data
-  const realCheckins = useMemo(() => {
-    return checkins
-  }, [checkins])
+  useEffect(() => {
+    if (isClient && isAuthenticated) fetchCheckins()
+  }, [isClient, isAuthenticated, fetchCheckins])
 
   const categories = ['All Categories', 'Cafe', 'Restaurant', 'Beach', 'Nature', 'Museum', 'Attraction']
 
-  // Filter checkins
   const filteredCheckins = useMemo(() => {
-    return realCheckins.filter(checkin => {
-      const matchesSearch = searchQuery === '' || 
+    return checkins.filter(checkin => {
+      const matchesSearch = searchQuery === '' ||
         checkin.venue.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         checkin.venue.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
         checkin.venue.address.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesCategory = selectedCategory === 'All Categories' || checkin.venue.category === selectedCategory
       let matchesDateRange = true
-      if (startDate && endDate) {
-        matchesDateRange = checkin.date >= startDate && checkin.date <= endDate
-      } else if (startDate) {
-        matchesDateRange = checkin.date >= startDate
-      } else if (endDate) {
-        matchesDateRange = checkin.date <= endDate
-      }
+      if (startDate && endDate) { matchesDateRange = checkin.date >= startDate && checkin.date <= endDate }
+      else if (startDate) { matchesDateRange = checkin.date >= startDate }
+      else if (endDate) { matchesDateRange = checkin.date <= endDate }
       return matchesSearch && matchesCategory && matchesDateRange
     })
-  }, [realCheckins, searchQuery, selectedCategory, startDate, endDate])
+  }, [checkins, searchQuery, selectedCategory, startDate, endDate])
 
   const groupedCheckins = useMemo(() => groupByDate(filteredCheckins), [filteredCheckins])
   const totalPlaces = filteredCheckins.length
@@ -1006,19 +719,7 @@ const TimelinePageContent = () => {
     if (checkin) setSelectedCheckin(checkin)
   }
 
-  const handleMapVenueDeselect = () => {
-    setSelectedMapVenue(null)
-  }
-
-  const handleMapVenueClick = () => {
-    if (selectedCheckin) setShowCheckinDetail(true)
-  }
-
   const handleCheckInAgain = (venue) => {
-    if (!isClient || !authContext?.isAuthenticated) {
-      setShowSignInPrompt(true)
-      return
-    }
     setCheckInVenue(venue)
     setShowCheckinDetail(false)
     setShowCheckInModal(true)
@@ -1032,8 +733,20 @@ const TimelinePageContent = () => {
     return 'Date'
   }
 
-  // Show loading state during hydration or data fetch
-  if (!isClient || isLoading) {
+  if (!isClient || loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-[#00A8CC] mb-4" />
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <LoginRequiredScreen />
+  }
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center">
         <Loader2 className="w-10 h-10 animate-spin text-[#00A8CC] mb-4" />
@@ -1044,7 +757,6 @@ const TimelinePageContent = () => {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
-      {/* Header */}
       <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-40 px-4 pt-4 pb-2">
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -1052,11 +764,7 @@ const TimelinePageContent = () => {
             <p className="text-sm text-gray-500">{totalPlaces} places visited</p>
           </div>
           <div className="flex items-center gap-2">
-            <button 
-              onClick={() => fetchCheckins(true)} 
-              disabled={isRefreshing}
-              className="w-10 h-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-center"
-            >
+            <button onClick={() => fetchCheckins(true)} disabled={isRefreshing} className="w-10 h-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-center">
               <RefreshCw className={`w-5 h-5 text-gray-500 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
             <button onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium">
@@ -1064,41 +772,32 @@ const TimelinePageContent = () => {
             </button>
           </div>
         </div>
-
         <div className="relative mb-3">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search timeline..." className="w-full h-12 rounded-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 pl-12 pr-4 text-base placeholder:text-gray-400" />
         </div>
-
         <div className="flex gap-2">
           <div className="relative flex-1">
             <button onClick={() => setShowCategoryDropdown(!showCategoryDropdown)} className="w-full h-11 px-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-between text-gray-700 dark:text-gray-300">
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-gray-400" />
-                <span className="text-sm font-medium">{selectedCategory}</span>
-              </div>
+              <div className="flex items-center gap-2"><Filter className="w-4 h-4 text-gray-400" /><span className="text-sm font-medium">{selectedCategory}</span></div>
               <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
             </button>
             <AnimatePresence>
               {showCategoryDropdown && (
                 <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden z-50">
                   {categories.map((cat) => (
-                    <button key={cat} onClick={() => { setSelectedCategory(cat); setShowCategoryDropdown(false); }} className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 ${selectedCategory === cat ? 'bg-[#00A8CC]/10 text-[#00A8CC] font-medium' : 'text-gray-700 dark:text-gray-300'}`}>
-                      {cat}
-                    </button>
+                    <button key={cat} onClick={() => { setSelectedCategory(cat); setShowCategoryDropdown(false); }} className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 ${selectedCategory === cat ? 'bg-[#00A8CC]/10 text-[#00A8CC] font-medium' : 'text-gray-700 dark:text-gray-300'}`}>{cat}</button>
                   ))}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
           <button onClick={() => setShowDatePicker(true)} className={`h-11 px-4 rounded-xl flex items-center gap-2 font-medium whitespace-nowrap ${hasDateFilter ? 'bg-[#00A8CC] text-white' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'}`}>
-            <Calendar className="w-4 h-4" />
-            <span className="text-sm">{dateFilterLabel()}</span>
+            <Calendar className="w-4 h-4" /><span className="text-sm">{dateFilterLabel()}</span>
           </button>
         </div>
       </div>
 
-      {/* Content */}
       <AnimatePresence mode="wait">
         {viewMode === 'list' ? (
           <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="px-4 pt-2">
@@ -1132,14 +831,13 @@ const TimelinePageContent = () => {
                   {hasDateFilter || selectedCategory !== 'All Categories' ? 'No check-ins found' : 'No check-ins yet'}
                 </h3>
                 <p className="text-gray-500 text-center max-w-xs mb-4">
-                  {hasDateFilter || selectedCategory !== 'All Categories' 
-                    ? 'Try adjusting your filters' 
+                  {hasDateFilter || selectedCategory !== 'All Categories'
+                    ? 'Try adjusting your filters'
                     : 'Start exploring Sydney and check in to your favorite places!'}
                 </p>
                 {!hasDateFilter && selectedCategory === 'All Categories' && (
                   <Link href="/explore" className="px-6 py-3 rounded-xl bg-[#00A8CC] text-white font-medium flex items-center gap-2">
-                    <Map className="w-5 h-5" />
-                    Explore Sydney
+                    <Map className="w-5 h-5" />Explore Sydney
                   </Link>
                 )}
               </div>
@@ -1147,21 +845,17 @@ const TimelinePageContent = () => {
           </motion.div>
         ) : (
           <motion.div key="map" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-[calc(100vh-240px)]">
-            <MapComponent venues={mapVenues} selectedVenue={selectedMapVenue} onVenueSelect={handleMapVenueSelect} onVenueDeselect={handleMapVenueDeselect} fitBounds={true} />
-            
+            <MapComponent venues={mapVenues} selectedVenue={selectedMapVenue} onVenueSelect={handleMapVenueSelect} onVenueDeselect={() => setSelectedMapVenue(null)} fitBounds={true} />
             <AnimatePresence>
               {selectedMapVenue && !showCheckinDetail && (
                 <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }} className="fixed left-4 right-4 bottom-24 z-[1002] max-w-lg mx-auto">
-                  <button onClick={handleMapVenueClick} className="w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 text-left">
+                  <button onClick={() => { if (selectedCheckin) setShowCheckinDetail(true) }} className="w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 text-left">
                     <div className="flex gap-3 p-3">
                       <img src={selectedMapVenue.image} alt={selectedMapVenue.name} className="w-24 h-20 rounded-xl object-cover" />
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-gray-900 dark:text-white">{selectedMapVenue.name}</h3>
-                        <p className="text-sm text-gray-500">{selectedMapVenue.category} • {selectedMapVenue.distance}</p>
-                        <div className="flex items-center gap-1 mt-1">
-                          <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                          <span className="font-semibold text-gray-700 dark:text-gray-300">{selectedMapVenue.rating}</span>
-                        </div>
+                        <p className="text-sm text-gray-500">{selectedMapVenue.category}</p>
+                        <div className="flex items-center gap-1 mt-1"><Star className="w-4 h-4 text-amber-400 fill-amber-400" /><span className="font-semibold text-gray-700 dark:text-gray-300">{selectedMapVenue.rating}</span></div>
                       </div>
                       <ChevronRight className="w-5 h-5 text-gray-400 self-center" />
                     </div>
@@ -1175,52 +869,10 @@ const TimelinePageContent = () => {
 
       <BottomNav active="timeline" />
       <DateRangePickerModal isOpen={showDatePicker} onClose={() => setShowDatePicker(false)} startDate={startDate} endDate={endDate} onDateRangeSelect={(s, e) => { setStartDate(s); setEndDate(e); }} />
-      <CheckinDetailSheet
-        checkin={selectedCheckin}
-        isOpen={showCheckinDetail}
-        onClose={() => setShowCheckinDetail(false)}
-        onCheckInAgain={handleCheckInAgain}
-        onDelete={deleteCheckin}
-      />
-
-      <SignInPrompt
-        isOpen={showSignInPrompt}
-        onClose={() => setShowSignInPrompt(false)}
-        onSignIn={() => {
-          setShowSignInPrompt(false)
-          if (checkInVenue) {
-            setShowCheckInModal(true)
-          }
-        }}
-      />
-
+      <CheckinDetailSheet checkin={selectedCheckin} isOpen={showCheckinDetail} onClose={() => setShowCheckinDetail(false)} onCheckInAgain={handleCheckInAgain} onDelete={deleteCheckin} />
       {showCheckInModal && checkInVenue && (
-        <CheckInModalSimple
-          venue={checkInVenue}
-          isOpen={showCheckInModal}
-          isAuthenticated={isClient && authContext?.isAuthenticated}
-          onClose={() => { setShowCheckInModal(false); setCheckInVenue(null); }}
-          onCheckinComplete={() => {
-            // Refresh the checkins list after a new check-in
-            fetchCheckins(true)
-          }}
-        />
+        <CheckInModalSimple venue={checkInVenue} isOpen={showCheckInModal} onClose={() => { setShowCheckInModal(false); setCheckInVenue(null); }} onCheckinComplete={() => fetchCheckins(true)} />
       )}
     </motion.div>
   )
 }
-
-const TimelinePage = () => {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-[#00A8CC] mb-4" />
-        <p className="text-gray-500">Loading timeline...</p>
-      </div>
-    }>
-      <TimelinePageContent />
-    </Suspense>
-  )
-}
-
-export default TimelinePage

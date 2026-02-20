@@ -7,12 +7,14 @@ import {
   MessageCircle, Map, Heart, Coffee, Umbrella, TreePine, Landmark,
   Sparkles, UtensilsCrossed, Crown, Bookmark, Edit3, Star, Trophy,
   Bell, Shield, HelpCircle, LogOut, Moon, Sun, Camera, Loader2,
-  BookMarked, Users, Zap, Trash2, X, Check
+  BookMarked, Users, Zap, Trash2, X, Check, Mail, Lock
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
+import { useAuth } from '@/lib/AuthContext'
+import { authFetch } from '@/lib/api'
 
 // Category icon and emoji mapping
 const categoryConfig = {
@@ -65,9 +67,9 @@ const BottomNav = ({ active = 'profile' }) => {
 }
 
 // Settings Sheet
-const SettingsSheet = ({ isOpen, onClose }) => {
+const SettingsSheet = ({ isOpen, onClose, onSignOut }) => {
   const [darkMode, setDarkMode] = useState(false)
-  
+
   if (!isOpen) return null
 
   const settingsGroups = [
@@ -146,7 +148,7 @@ const SettingsSheet = ({ isOpen, onClose }) => {
             </div>
           ))}
           
-          <button className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-red-50 dark:bg-red-900/20 text-red-500 font-medium">
+          <button onClick={onSignOut} className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-red-50 dark:bg-red-900/20 text-red-500 font-medium">
             <LogOut className="w-5 h-5" />
             Sign Out
           </button>
@@ -203,8 +205,125 @@ const ListCard = ({ title, count, icon: Icon, color, onClick }) => (
   </button>
 )
 
+const SignedOutProfile = () => {
+  const router = useRouter()
+  const { signInWithEmail, signUpWithEmail } = useAuth()
+  const [isLogin, setIsLogin] = useState(true)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    try {
+      if (isLogin) {
+        await signInWithEmail(email, password)
+        toast.success('Welcome back!')
+      } else {
+        await signUpWithEmail(email, password, name)
+        toast.success('Account created!')
+      }
+    } catch (error) {
+      toast.error(error.message || 'Authentication failed')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
+      <div className="px-4 pt-12 pb-6 flex flex-col items-center">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#00A8CC] to-[#F4A261] flex items-center justify-center mb-6">
+          <User className="w-10 h-10 text-white" />
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          {isLogin ? 'Sign in to your account' : 'Create an account'}
+        </h1>
+        <p className="text-gray-500 text-center max-w-xs mb-8">
+          {isLogin
+            ? 'Sign in to view your profile, check-ins, and saved places.'
+            : 'Join Sydney Planner to track your adventures.'}
+        </p>
+
+        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
+          {!isLogin && (
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="pl-12 h-12 rounded-xl"
+                required={!isLogin}
+              />
+            </div>
+          )}
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Input
+              type="email"
+              placeholder="Email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="pl-12 h-12 rounded-xl"
+              required
+            />
+          </div>
+          <div className="relative">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Input
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="pl-12 pr-12 h-12 rounded-xl"
+              required
+              minLength={6}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              {showPassword ? <span className="text-xs font-medium">Hide</span> : <span className="text-xs font-medium">Show</span>}
+            </button>
+          </div>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full h-12 rounded-xl bg-[#00A8CC] hover:bg-[#00A8CC]/90 text-white font-medium flex items-center justify-center gap-2 transition-colors"
+          >
+            {isSubmitting ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              isLogin ? 'Sign In' : 'Create Account'
+            )}
+          </button>
+        </form>
+
+        <p className="mt-6 text-gray-500 text-sm">
+          {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
+          <button
+            type="button"
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-[#00A8CC] font-medium"
+          >
+            {isLogin ? 'Sign up' : 'Sign in'}
+          </button>
+        </p>
+      </div>
+      <BottomNav active="profile" />
+    </motion.div>
+  )
+}
+
 export default function ProfilePage() {
   const router = useRouter()
+  const { user, isAuthenticated, loading: authLoading, signOut, signInWithEmail, signUpWithEmail } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
@@ -218,15 +337,13 @@ export default function ProfilePage() {
   })
   const [categoryStats, setCategoryStats] = useState({})
   const [unlockedBadges, setUnlockedBadges] = useState([])
-  
-  // Profile editing state
+
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [profileName, setProfileName] = useState('Sydney Explorer')
   const [profileLocation, setProfileLocation] = useState('Sydney, NSW')
   const [tempName, setTempName] = useState('')
   const [tempLocation, setTempLocation] = useState('')
 
-  // Load saved profile from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedName = localStorage.getItem('profile_name')
@@ -257,17 +374,15 @@ export default function ProfilePage() {
     setIsEditingProfile(false)
   }
 
-  // Delete check-in
   const deleteCheckin = async (checkinId) => {
     try {
-      const response = await fetch(`/api/checkins/${checkinId}`, {
+      const response = await authFetch(`/api/checkins/${checkinId}`, {
         method: 'DELETE'
       })
       const data = await response.json()
-      
+
       if (data.success) {
         toast.success('Check-in deleted')
-        // Remove from local state and recalculate
         setCheckins(prev => prev.filter(c => c.id !== checkinId))
       } else {
         toast.error(data.error || 'Failed to delete check-in')
@@ -278,44 +393,42 @@ export default function ProfilePage() {
     }
   }
 
-  // Fetch user data
   const fetchUserData = useCallback(async () => {
+    if (!isAuthenticated) {
+      setIsLoading(false)
+      return
+    }
     setIsLoading(true)
     try {
-      // Fetch check-ins
-      const checkinsRes = await fetch('/api/checkins?user_id=anonymous')
+      const checkinsRes = await authFetch('/api/checkins')
       const checkinsData = await checkinsRes.json()
-      
-      // Fetch saves
-      const savesRes = await fetch('/api/saves?user_id=anonymous')
+
+      const savesRes = await authFetch('/api/saves')
       const savesData = await savesRes.json()
-      
+
       const userCheckins = (checkinsData.checkins || []).filter(c => c.venue_name && c.venue_category)
       const userSaves = savesData.saves || []
-      
+
       setCheckins(userCheckins)
       setSaves(userSaves)
-      
-      // Calculate stats
+
       const totalCheckins = userCheckins.length
-      const points = totalCheckins * 10 // 10 points per check-in
-      
+      const points = totalCheckins * 10
+
       setStats({
         totalCheckins,
-        mayorships: 0, // Would need more complex logic
+        mayorships: 0,
         friends: 0,
         points
       })
-      
-      // Calculate category stats
+
       const catStats = {}
       userCheckins.forEach(checkin => {
         const cat = checkin.venue_category || 'Other'
         catStats[cat] = (catStats[cat] || 0) + 1
       })
       setCategoryStats(catStats)
-      
-      // Calculate unlocked badges
+
       const unlocked = []
       badges.forEach(badge => {
         if (badge.type === 'total_checkins' && totalCheckins >= badge.requirement) {
@@ -325,18 +438,29 @@ export default function ProfilePage() {
         }
       })
       setUnlockedBadges(unlocked)
-      
     } catch (error) {
       console.error('Error fetching user data:', error)
       toast.error('Failed to load profile')
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [isAuthenticated])
 
   useEffect(() => {
-    fetchUserData()
-  }, [fetchUserData])
+    if (!authLoading) {
+      fetchUserData()
+    }
+  }, [fetchUserData, authLoading])
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      toast.success('Signed out')
+      router.push('/login')
+    } catch (error) {
+      toast.error('Failed to sign out')
+    }
+  }
 
   const handleShare = () => {
     if (navigator.share) {
@@ -350,13 +474,17 @@ export default function ProfilePage() {
     }
   }
 
-  if (isLoading) {
+  if (authLoading || (isAuthenticated && isLoading)) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center">
         <Loader2 className="w-10 h-10 animate-spin text-[#00A8CC] mb-4" />
         <p className="text-gray-500">Loading profile...</p>
       </div>
     )
+  }
+
+  if (!isAuthenticated) {
+    return <SignedOutProfile />
   }
 
   const tabs = [
@@ -380,6 +508,9 @@ export default function ProfilePage() {
             </button>
             <button onClick={() => setShowSettings(true)} className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center shadow-sm">
               <Settings className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+            </button>
+            <button onClick={handleSignOut} className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center shadow-sm">
+              <LogOut className="w-5 h-5 text-red-500" />
             </button>
           </div>
         </div>
@@ -432,6 +563,9 @@ export default function ProfilePage() {
           ) : (
             <>
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">{profileName}</h1>
+              {user?.email && (
+                <p className="text-sm text-gray-500 mb-0.5">{user.email}</p>
+              )}
               <div className="flex items-center gap-2 text-gray-500 text-sm">
                 <MapPin className="w-4 h-4" />
                 <span>{profileLocation}</span>
@@ -747,7 +881,7 @@ export default function ProfilePage() {
       </AnimatePresence>
 
       <BottomNav active="profile" />
-      <SettingsSheet isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      <SettingsSheet isOpen={showSettings} onClose={() => setShowSettings(false)} onSignOut={handleSignOut} />
     </motion.div>
   )
 }
