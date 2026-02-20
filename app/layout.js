@@ -2,6 +2,7 @@ import './globals.css'
 import { Toaster } from 'sonner'
 import { VenueProvider } from '@/lib/VenueContext'
 import { AuthProvider } from '@/lib/AuthContext'
+import QueryProvider from '@/lib/QueryProvider'
 
 export const metadata = {
   title: 'Sydney Planner - Discover, Check-in, Relive Sydney',
@@ -29,14 +30,16 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
-        <AuthProvider>
-          <VenueProvider>
-            <main className="overflow-x-hidden">
-              {children}
-            </main>
-            <Toaster position="top-center" richColors />
-          </VenueProvider>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <VenueProvider>
+              <main className="overflow-x-hidden">
+                {children}
+              </main>
+              <Toaster position="top-center" richColors />
+            </VenueProvider>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   )
