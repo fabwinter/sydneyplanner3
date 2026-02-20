@@ -227,6 +227,13 @@ function filterVenues(query) {
   return filtered.slice(0, 5)
 }
 
+// God mode guard
+function isGodModeRequest(request) {
+  const email = request.headers.get('x-god-mode-email')
+  const godModeEmail = process.env.GOD_MODE_EMAIL
+  return !!(email && godModeEmail && email === godModeEmail)
+}
+
 // Helper function to handle CORS
 function handleCORS(response) {
   response.headers.set('Access-Control-Allow-Origin', process.env.CORS_ORIGINS || '*')
@@ -281,27 +288,132 @@ async function handleRoute(request, { params }) {
       }))
     }
 
-    // Get all venues - GET /api/venues
+    // Get all venues - GET /api/venues (static + MongoDB)
     if (route === '/venues' && method === 'GET') {
-      return handleCORS(NextResponse.json({
-        venues: sydneyVenues,
-        total: sydneyVenues.length
-      }))
+      try {
+        const database = await connectToMongo()
+        const dbVenues = await database.collection('venues').find({}).toArray()
+        // Merge: static venues + db-only venues (avoid duplicates by id)
+        const staticIds = new Set(sydneyVenues.map(v => v.id))
+        const dbOnlyVenues = dbVenues.filter(v => !staticIds.has(v.id))
+        const allVenues = [...sydneyVenues, ...dbOnlyVenues]
+        return handleCORS(NextResponse.json({ venues: allVenues, total: allVenues.length }))
+      } catch (err) {
+        return handleCORS(NextResponse.json({ venues: sydneyVenues, total: sydneyVenues.length }))
+      }
+    }
+
+    // Create venue - POST /api/venues (god mode only)
+    if (route === '/venues' && method === 'POST') {
+      if (!isGodModeRequest(request)) {
+        return handleCORS(NextResponse.json({ error: 'God mode required' }, { status: 403 }))
+      }
+      const body = await request.json()
+      const { name, category, address, lat, lng, rating, description, image, fsqId } = body
+
+      if (!name || !category) {
+        return handleCORS(NextResponse.json({ error: 'Name and category are required' }, { status: 400 }))
+      }
+
+      const venueId = uuidv4()
+      const now = new Date().toISOString()
+      const venue = {
+        id: venueId,
+        name,
+        category,
+        address: address || '',
+        lat: parseFloat(lat) || 0,
+        lng: parseFloat(lng) || 0,
+        rating: parseFloat(rating) || 0,
+        description: description || '',
+        image: image || '',
+        distance: '0 km',
+        fsqId: fsqId || null,
+        isDbVenue: true,
+        created_at: now,
+        updated_at: now,
+      }
+
+      try {
+        const database = await connectToMongo()
+        await database.collection('venues').insertOne(venue)
+        return handleCORS(NextResponse.json({ success: true, venue, message: 'Venue created' }))
+      } catch (err) {
+        return handleCORS(NextResponse.json({ error: 'Failed to create venue' }, { status: 500 }))
+      }
     }
 
     // Get venue by ID - GET /api/venues/:id
     if (route.startsWith('/venues/') && method === 'GET') {
       const venueId = path[1]
       const venue = sydneyVenues.find(v => v.id === venueId)
-      
-      if (!venue) {
-        return handleCORS(NextResponse.json(
-          { error: "Venue not found" },
-          { status: 404 }
-        ))
-      }
 
-      return handleCORS(NextResponse.json(venue))
+      if (venue) return handleCORS(NextResponse.json(venue))
+
+      // Check MongoDB
+      try {
+        const database = await connectToMongo()
+        const dbVenue = await database.collection('venues').findOne({ id: venueId })
+        if (!dbVenue) {
+          return handleCORS(NextResponse.json({ error: 'Venue not found' }, { status: 404 }))
+        }
+        return handleCORS(NextResponse.json(dbVenue))
+      } catch (err) {
+        return handleCORS(NextResponse.json({ error: 'Venue not found' }, { status: 404 }))
+      }
+    }
+
+    // Update venue - PUT /api/venues/:id (god mode only)
+    if (route.startsWith('/venues/') && method === 'PUT') {
+      if (!isGodModeRequest(request)) {
+        return handleCORS(NextResponse.json({ error: 'God mode required' }, { status: 403 }))
+      }
+      const venueId = path[1]
+      const body = await request.json()
+      const { name, category, address, lat, lng, rating, description, image } = body
+
+      const updateFields = { updated_at: new Date().toISOString() }
+      if (name !== undefined) updateFields.name = name
+      if (category !== undefined) updateFields.category = category
+      if (address !== undefined) updateFields.address = address
+      if (lat !== undefined) updateFields.lat = parseFloat(lat)
+      if (lng !== undefined) updateFields.lng = parseFloat(lng)
+      if (rating !== undefined) updateFields.rating = parseFloat(rating)
+      if (description !== undefined) updateFields.description = description
+      if (image !== undefined) updateFields.image = image
+
+      try {
+        const database = await connectToMongo()
+        const result = await database.collection('venues').updateOne(
+          { id: venueId },
+          { $set: updateFields }
+        )
+        if (result.matchedCount === 0) {
+          return handleCORS(NextResponse.json({ error: 'Venue not found' }, { status: 404 }))
+        }
+        const updatedVenue = await database.collection('venues').findOne({ id: venueId })
+        return handleCORS(NextResponse.json({ success: true, venue: updatedVenue, message: 'Venue updated' }))
+      } catch (err) {
+        return handleCORS(NextResponse.json({ error: 'Failed to update venue' }, { status: 500 }))
+      }
+    }
+
+    // Delete venue - DELETE /api/venues/:id (god mode only)
+    if (route.startsWith('/venues/') && method === 'DELETE') {
+      if (!isGodModeRequest(request)) {
+        return handleCORS(NextResponse.json({ error: 'God mode required' }, { status: 403 }))
+      }
+      const venueId = path[1]
+      try {
+        const database = await connectToMongo()
+        const result = await database.collection('venues').deleteOne({ id: venueId })
+        if (result.deletedCount === 0) {
+          return handleCORS(NextResponse.json({ error: 'Venue not found' }, { status: 404 }))
+        }
+        return handleCORS(NextResponse.json({ success: true, message: 'Venue deleted' }))
+      } catch (err) {
+        return handleCORS(NextResponse.json({ error: 'Failed to delete venue' }, { status: 500 }))
+      }
     }
 
     // Search venues - GET /api/search?q=...

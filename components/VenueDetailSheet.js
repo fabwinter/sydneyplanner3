@@ -6,13 +6,14 @@ import {
   MapPin, Star, Heart, ChevronDown, ChevronRight, ChevronLeft,
   Clock, Phone, Globe, Wifi, Car, Accessibility, UtensilsCrossed,
   PawPrint, ExternalLink, ListPlus, Share2, Check, Navigation,
-  X, Camera, ImagePlus, Loader2, LogIn, MapPinned, Calendar, Edit3, Trash2
+  X, Camera, ImagePlus, Loader2, LogIn, MapPinned, Calendar, Edit3, Trash2, Save
 } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/AuthContext'
 import FoursquareVenueExtras from '@/components/FoursquareVenueExtras'
+import VenueEditModal from '@/components/VenueEditModal'
 
 // Sign In Prompt Modal
 const SignInPrompt = ({ isOpen, onClose, action }) => {
@@ -344,21 +345,25 @@ const EditCheckinModal = ({ checkin, isOpen, onClose, onSave }) => {
   )
 }
 
-const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
-  const { isAuthenticated } = useAuth()
+const VenueDetailSheet = ({ venue, isOpen, onClose, onVenueSaved }) => {
+  const { isAuthenticated, isGodMode, user } = useAuth()
   const [saved, setSaved] = useState(false)
   const [showCheckIn, setShowCheckIn] = useState(false)
   const [showSignInPrompt, setShowSignInPrompt] = useState(false)
   const [signInAction, setSignInAction] = useState('')
-  
+
   // Check-in history state
   const [venueCheckins, setVenueCheckins] = useState([])
   const [currentVisitIndex, setCurrentVisitIndex] = useState(0)
   const [isLoadingCheckins, setIsLoadingCheckins] = useState(false)
-  
-  // Edit modal state
+
+  // Check-in edit modal state
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingCheckin, setEditingCheckin] = useState(null)
+
+  // God mode venue edit modal state
+  const [showVenueEditModal, setShowVenueEditModal] = useState(false)
+  const [isDeletingVenue, setIsDeletingVenue] = useState(false)
 
   // Fetch check-ins for this venue
   const fetchVenueCheckins = useCallback(async () => {
@@ -491,6 +496,35 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
 
   const handleCall = () => {
     window.location.href = 'tel:+61298346218'
+  }
+
+  // God mode: handle venue saved/updated via VenueEditModal
+  const handleVenueSaved = (updatedVenue) => {
+    if (onVenueSaved) onVenueSaved(updatedVenue)
+  }
+
+  // God mode: delete a DB venue
+  const handleDeleteVenue = async () => {
+    if (!venue?.id || !confirm(`Delete "${venue.name}" from the database?`)) return
+    setIsDeletingVenue(true)
+    try {
+      const response = await fetch(`/api/venues/${venue.id}`, {
+        method: 'DELETE',
+        headers: { 'x-god-mode-email': user?.email || '' },
+      })
+      const data = await response.json()
+      if (data.success) {
+        toast.success('Venue deleted from database')
+        onClose()
+        if (onVenueSaved) onVenueSaved(null)
+      } else {
+        toast.error(data.error || 'Failed to delete venue')
+      }
+    } catch (err) {
+      toast.error('Failed to delete venue')
+    } finally {
+      setIsDeletingVenue(false)
+    }
   }
 
   const amenities = [
@@ -710,6 +744,50 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
                 </div>
               </div>
 
+              {/* God Mode Controls */}
+              {isGodMode && (
+                <div className="mx-4 mb-4 p-3 rounded-2xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-xs font-bold text-purple-600 bg-purple-100 dark:bg-purple-900/60 px-2 py-0.5 rounded-full">GOD MODE</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {venue.isFoursquare && !venue.isDbVenue ? (
+                      <button
+                        onClick={() => setShowVenueEditModal(true)}
+                        className="flex-1 h-9 rounded-xl bg-purple-600 text-white text-xs font-semibold flex items-center justify-center gap-1.5"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        Save to DB
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setShowVenueEditModal(true)}
+                          className="flex-1 h-9 rounded-xl bg-purple-600 text-white text-xs font-semibold flex items-center justify-center gap-1.5"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          Edit Venue
+                        </button>
+                        {venue.isDbVenue && (
+                          <button
+                            onClick={handleDeleteVenue}
+                            disabled={isDeletingVenue}
+                            className="flex-1 h-9 rounded-xl bg-red-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 disabled:opacity-50"
+                          >
+                            {isDeletingVenue ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                            Delete
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Bottom Action Bar - Smaller buttons like reference */}
               <div className="absolute bottom-0 left-0 right-0 p-3 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 safe-bottom">
                 <div className="flex items-center gap-2">
@@ -736,6 +814,7 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
       <CheckInModal venue={venue} isOpen={showCheckIn} onClose={() => setShowCheckIn(false)} onComplete={handleCheckInComplete} />
       <EditCheckinModal checkin={editingCheckin} isOpen={showEditModal} onClose={() => { setShowEditModal(false); setEditingCheckin(null); }} onSave={handleSaveEdit} />
       <SignInPrompt isOpen={showSignInPrompt} onClose={() => setShowSignInPrompt(false)} action={signInAction} />
+      <VenueEditModal venue={venue} isOpen={showVenueEditModal} onClose={() => setShowVenueEditModal(false)} onSave={handleVenueSaved} />
     </>
   )
 }

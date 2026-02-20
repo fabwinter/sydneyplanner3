@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Star, Heart, ChevronRight, ChevronDown,
   Clock, MessageCircle, User, Map, Loader2, Navigation,
-  RotateCcw, List, X, AlertCircle
+  RotateCcw, List, X, AlertCircle, Save
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import dynamic from 'next/dynamic'
 import { useVenues } from '@/lib/VenueContext'
+import { useAuth } from '@/lib/AuthContext'
 import VenueDetailSheet from '@/components/VenueDetailSheet'
 import FoursquareCategoryFilter from '@/components/FoursquareCategoryFilter'
 import { useSydneyVenues } from '@/hooks/useFoursquare'
@@ -164,6 +165,7 @@ const VenueListPopup = ({ venues, isOpen, onClose, onVenueClick, isLoading, isEr
 const ExplorePage = () => {
   const router = useRouter()
   const { currentVenues } = useVenues()
+  const { isGodMode, user } = useAuth()
 
   // Static venue data from our own API
   const [staticVenues, setStaticVenues] = useState([])
@@ -314,6 +316,39 @@ const ExplorePage = () => {
     }
   }, [fsqError, selectedCategory])
 
+  // God mode: save a Foursquare venue to DB
+  const handleGodModeSaveToDB = async (venue) => {
+    if (!venue) return
+    try {
+      const response = await fetch('/api/venues', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-god-mode-email': user?.email || '',
+        },
+        body: JSON.stringify({
+          name: venue.name,
+          category: venue.category,
+          address: venue.address || '',
+          lat: venue.lat,
+          lng: venue.lng,
+          rating: venue.rating,
+          description: venue.description || '',
+          image: venue.image || '',
+          fsqId: venue.fsqId || venue.id,
+        }),
+      })
+      const data = await response.json()
+      if (data.success) {
+        toast.success(`"${venue.name}" saved to database!`)
+      } else {
+        toast.error(data.error || 'Failed to save venue')
+      }
+    } catch (err) {
+      toast.error('Failed to save venue to database')
+    }
+  }
+
   return (
     <motion.div
       initial={{ x: 50, opacity: 0 }}
@@ -408,9 +443,20 @@ const ExplorePage = () => {
                   {selectedVenue.address && (
                     <p className="text-xs text-gray-400 truncate">{selectedVenue.address}</p>
                   )}
-                  <div className="flex items-center gap-1 mt-1">
-                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                    <span className="font-semibold text-gray-700 dark:text-gray-300">{selectedVenue.rating}</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-1">
+                      <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">{selectedVenue.rating}</span>
+                    </div>
+                    {isGodMode && selectedVenue.isFoursquare && !selectedVenue.isDbVenue && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleGodModeSaveToDB(selectedVenue) }}
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold"
+                      >
+                        <Save className="w-3 h-3" />
+                        Save
+                      </button>
+                    )}
                   </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-gray-400 self-center" />
@@ -520,6 +566,12 @@ const ExplorePage = () => {
         venue={selectedVenue}
         isOpen={showVenueDetail}
         onClose={() => setShowVenueDetail(false)}
+        onVenueSaved={(updatedVenue) => {
+          if (!updatedVenue) {
+            setShowVenueDetail(false)
+            setSelectedVenue(null)
+          }
+        }}
       />
     </motion.div>
   )
