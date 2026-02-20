@@ -206,7 +206,7 @@ const ListCard = ({ title, count, icon: Icon, color, onClick }) => (
 
 export default function ProfilePage() {
   const router = useRouter()
-  const { user, isAuthenticated, isGodMode, signOut } = useAuth()
+  const { user, isAuthenticated, isGodMode, godModeActive, signOut } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
@@ -448,8 +448,8 @@ export default function ProfilePage() {
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">{profileName}</h1>
                 {isGodMode && (
-                  <span className="text-xs font-bold text-purple-600 bg-purple-100 dark:bg-purple-900/40 px-2 py-0.5 rounded-full">
-                    GOD MODE
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${godModeActive ? 'text-amber-700 bg-amber-100 dark:bg-amber-900/40' : 'text-purple-600 bg-purple-100 dark:bg-purple-900/40'}`}>
+                    {godModeActive ? 'GOD MODE ON' : 'GOD MODE'}
                   </span>
                 )}
               </div>

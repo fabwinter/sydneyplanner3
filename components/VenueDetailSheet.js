@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/AuthContext'
+import { authFetch } from '@/lib/api'
 import FoursquareVenueExtras from '@/components/FoursquareVenueExtras'
 import VenueEditModal from '@/components/VenueEditModal'
 
@@ -346,7 +347,7 @@ const EditCheckinModal = ({ checkin, isOpen, onClose, onSave }) => {
 }
 
 const VenueDetailSheet = ({ venue, isOpen, onClose, onVenueSaved }) => {
-  const { isAuthenticated, isGodMode, user } = useAuth()
+  const { isAuthenticated, godModeActive } = useAuth()
   const [saved, setSaved] = useState(false)
   const [showCheckIn, setShowCheckIn] = useState(false)
   const [showSignInPrompt, setShowSignInPrompt] = useState(false)
@@ -503,15 +504,12 @@ const VenueDetailSheet = ({ venue, isOpen, onClose, onVenueSaved }) => {
     if (onVenueSaved) onVenueSaved(updatedVenue)
   }
 
-  // God mode: delete a DB venue
+  // God mode: delete a saved venue from Supabase
   const handleDeleteVenue = async () => {
     if (!venue?.id || !confirm(`Delete "${venue.name}" from the database?`)) return
     setIsDeletingVenue(true)
     try {
-      const response = await fetch(`/api/venues/${venue.id}`, {
-        method: 'DELETE',
-        headers: { 'x-god-mode-email': user?.email || '' },
-      })
+      const response = await authFetch(`/api/venues/saved/${venue.id}`, { method: 'DELETE' })
       const data = await response.json()
       if (data.success) {
         toast.success('Venue deleted from database')
@@ -745,7 +743,7 @@ const VenueDetailSheet = ({ venue, isOpen, onClose, onVenueSaved }) => {
               </div>
 
               {/* God Mode Controls */}
-              {isGodMode && (
+              {godModeActive && (
                 <div className="mx-4 mb-4 p-3 rounded-2xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20">
                   <div className="flex items-center gap-1.5 mb-2">
                     <span className="text-xs font-bold text-purple-600 bg-purple-100 dark:bg-purple-900/60 px-2 py-0.5 rounded-full">GOD MODE</span>

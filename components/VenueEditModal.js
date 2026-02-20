@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Loader2, Save } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { useAuth } from '@/lib/AuthContext'
+import { authFetch } from '@/lib/api'
 
 const FIELDS = [
   { label: 'Name *', field: 'name', placeholder: 'Venue name' },
@@ -19,7 +19,6 @@ const FIELDS = [
 ]
 
 const VenueEditModal = ({ venue, isOpen, onClose, onSave }) => {
-  const { user } = useAuth()
   const [form, setForm] = useState({
     name: '', category: '', address: '', lat: '', lng: '',
     rating: '', description: '', image: '',
@@ -43,7 +42,8 @@ const VenueEditModal = ({ venue, isOpen, onClose, onSave }) => {
 
   if (!isOpen || !venue) return null
 
-  const isSaveNew = venue.isFoursquare && !venue.isDbVenue
+  // venue.added_by exists = it's already in Supabase; otherwise save new
+  const isSaveNew = !venue.added_by
   const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
 
   const handleSubmit = async () => {
@@ -53,28 +53,32 @@ const VenueEditModal = ({ venue, isOpen, onClose, onSave }) => {
     }
     setIsSubmitting(true)
     try {
-      const url = isSaveNew ? '/api/venues' : `/api/venues/${venue.id}`
-      const method = isSaveNew ? 'POST' : 'PUT'
+      // Supabase venues table schema uses snake_case and string rating
+      const payload = {
+        name: form.name,
+        category: form.category,
+        address: form.address,
+        lat: parseFloat(form.lat) || 0,
+        lng: parseFloat(form.lng) || 0,
+        rating: form.rating || '0',
+        description: form.description,
+        image: form.image,
+        ...(venue.fsqId ? { fsq_id: venue.fsqId } : {}),
+        is_foursquare: !!venue.isFoursquare,
+      }
 
-      const response = await fetch(url, {
+      const url = isSaveNew ? '/api/venues/saved' : `/api/venues/saved/${venue.id}`
+      const method = isSaveNew ? 'POST' : 'PATCH'
+
+      const response = await authFetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-god-mode-email': user?.email || '',
-        },
-        body: JSON.stringify({
-          ...form,
-          lat: parseFloat(form.lat) || 0,
-          lng: parseFloat(form.lng) || 0,
-          rating: parseFloat(form.rating) || 0,
-          ...(venue.fsqId ? { fsqId: venue.fsqId } : {}),
-        }),
+        body: JSON.stringify(payload),
       })
 
       const data = await response.json()
       if (data.success) {
         toast.success(isSaveNew ? 'Venue saved to database!' : 'Venue updated!')
-        onSave(data.venue)
+        onSave(isSaveNew ? (Array.isArray(data.venues) ? data.venues[0] : data.venue) : data.venue)
         onClose()
       } else {
         toast.error(data.error || 'Failed to save venue')
