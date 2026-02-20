@@ -1,21 +1,23 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, useRef, useContext, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
+import {
   Search, Star, Clock, Filter, Calendar, ChevronDown, ChevronLeft, ChevronRight,
   MessageCircle, User, Map, Heart, Coffee, Umbrella, Building2,
   TreePine, Landmark, Sparkles, UtensilsCrossed, X, ArrowRight, List, Loader2, Navigation,
   MapPin, Phone, Globe, Share2, Bookmark, Camera, Image as ImageIcon, Plus, RefreshCw, Trash2
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
+import dynamicImport from 'next/dynamic'
 import { toast } from 'sonner'
+import { AuthContext } from '@/lib/AuthContext'
 
 // Dynamic import for map with error handling
-const MapComponent = dynamic(
+const MapComponent = dynamicImport(
   () => import('@/components/MapComponent').catch(() => {
     return () => (
       <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
@@ -520,8 +522,77 @@ const CheckinCard = ({ checkin, onClick }) => {
   )
 }
 
+// Sign-in Prompt Modal
+const SignInPrompt = ({ isOpen, onClose, onSignIn }) => {
+  const [email, setEmail] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const authContext = useContext(AuthContext)
+  const signInWithEmail = authContext?.signInWithEmail
+
+  const handleSignIn = async () => {
+    if (!email.trim()) {
+      toast.error('Please enter your email')
+      return
+    }
+
+    if (!signInWithEmail) {
+      toast.error('Authentication not available')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await signInWithEmail(email, 'Sydney2024!')
+      toast.success('Signed in successfully!')
+      setEmail('')
+      onClose()
+      if (onSignIn) onSignIn()
+    } catch (error) {
+      toast.error(error.message || 'Failed to sign in')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <AnimatePresence>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/50 z-[3500] flex items-center justify-center p-4">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md p-6 shadow-xl">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Sign In Required</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">You need to be logged in to check in at venues.</p>
+
+          <div className="mb-6">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00A8CC]"
+            />
+            <p className="text-xs text-gray-500 mt-2">Demo: Use any email with password: Sydney2024!</p>
+          </div>
+
+          <div className="flex gap-3">
+            <button onClick={onClose} className="flex-1 h-12 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-800">Cancel</button>
+            <button
+              onClick={handleSignIn}
+              disabled={isLoading}
+              className="flex-1 h-12 rounded-xl bg-[#00A8CC] text-white font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign In'}
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  )
+}
+
 // Simple Check-in Modal with Photo Upload
-const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete }) => {
+const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete, isAuthenticated }) => {
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -596,14 +667,30 @@ const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete }) => {
       toast.error('Please select a rating')
       return
     }
-    
+
+    if (!isAuthenticated) {
+      toast.error('You must be signed in to check in')
+      return
+    }
+
     setIsSubmitting(true)
     if (navigator.vibrate) navigator.vibrate(50)
-    
+
     try {
+      const { supabase } = await import('@/lib/supabase')
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        toast.error('Authentication token not found. Please sign in again.')
+        return
+      }
+
       const response = await fetch('/api/checkins', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           venue_id: venue.id,
           venue_name: venue.name,
@@ -614,13 +701,12 @@ const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete }) => {
           venue_image: venue.image,
           rating,
           comment,
-          photos: photos,
-          user_id: 'anonymous' // Replace with actual user ID when auth is implemented
+          photos: photos
         })
       })
-      
+
       const data = await response.json()
-      
+
       if (data.success) {
         toast.success(`Checked in at ${venue.name}!`)
         // Reset form
@@ -630,7 +716,7 @@ const CheckInModalSimple = ({ venue, isOpen, onClose, onCheckinComplete }) => {
         if (onCheckinComplete) onCheckinComplete(data)
         onClose()
       } else {
-        toast.error('Failed to check in')
+        toast.error(data.error || 'Failed to check in')
       }
     } catch (err) {
       console.error('Check-in error:', err)
@@ -750,8 +836,14 @@ const BottomNav = ({ active = 'timeline' }) => {
   )
 }
 
-const TimelinePage = () => {
+const TimelinePageContent = () => {
   const router = useRouter()
+  let authContext
+  try {
+    authContext = useContext(AuthContext)
+  } catch (e) {
+    authContext = null
+  }
   const [isClient, setIsClient] = useState(false)
   const [viewMode, setViewMode] = useState('list')
   const [searchQuery, setSearchQuery] = useState('')
@@ -765,7 +857,8 @@ const TimelinePage = () => {
   const [selectedMapVenue, setSelectedMapVenue] = useState(null)
   const [showCheckInModal, setShowCheckInModal] = useState(false)
   const [checkInVenue, setCheckInVenue] = useState(null)
-  
+  const [showSignInPrompt, setShowSignInPrompt] = useState(false)
+
   // Real data state
   const [checkins, setCheckins] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -922,6 +1015,10 @@ const TimelinePage = () => {
   }
 
   const handleCheckInAgain = (venue) => {
+    if (!isClient || !authContext?.isAuthenticated) {
+      setShowSignInPrompt(true)
+      return
+    }
     setCheckInVenue(venue)
     setShowCheckinDetail(false)
     setShowCheckInModal(true)
@@ -1078,19 +1175,31 @@ const TimelinePage = () => {
 
       <BottomNav active="timeline" />
       <DateRangePickerModal isOpen={showDatePicker} onClose={() => setShowDatePicker(false)} startDate={startDate} endDate={endDate} onDateRangeSelect={(s, e) => { setStartDate(s); setEndDate(e); }} />
-      <CheckinDetailSheet 
-        checkin={selectedCheckin} 
-        isOpen={showCheckinDetail} 
-        onClose={() => setShowCheckinDetail(false)} 
+      <CheckinDetailSheet
+        checkin={selectedCheckin}
+        isOpen={showCheckinDetail}
+        onClose={() => setShowCheckinDetail(false)}
         onCheckInAgain={handleCheckInAgain}
         onDelete={deleteCheckin}
       />
-      
+
+      <SignInPrompt
+        isOpen={showSignInPrompt}
+        onClose={() => setShowSignInPrompt(false)}
+        onSignIn={() => {
+          setShowSignInPrompt(false)
+          if (checkInVenue) {
+            setShowCheckInModal(true)
+          }
+        }}
+      />
+
       {showCheckInModal && checkInVenue && (
-        <CheckInModalSimple 
-          venue={checkInVenue} 
-          isOpen={showCheckInModal} 
-          onClose={() => { setShowCheckInModal(false); setCheckInVenue(null); }} 
+        <CheckInModalSimple
+          venue={checkInVenue}
+          isOpen={showCheckInModal}
+          isAuthenticated={isClient && authContext?.isAuthenticated}
+          onClose={() => { setShowCheckInModal(false); setCheckInVenue(null); }}
           onCheckinComplete={() => {
             // Refresh the checkins list after a new check-in
             fetchCheckins(true)
@@ -1098,6 +1207,19 @@ const TimelinePage = () => {
         />
       )}
     </motion.div>
+  )
+}
+
+const TimelinePage = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-[#00A8CC] mb-4" />
+        <p className="text-gray-500">Loading timeline...</p>
+      </div>
+    }>
+      <TimelinePageContent />
+    </Suspense>
   )
 }
 
