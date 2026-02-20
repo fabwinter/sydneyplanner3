@@ -2,6 +2,12 @@ import { MongoClient } from 'mongodb'
 import { v4 as uuidv4 } from 'uuid'
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import {
+  searchVenues as fsqSearch,
+  getVenueDetails as fsqGetDetails,
+  getVenuePhotos as fsqGetPhotos,
+  getVenueTips as fsqGetTips,
+} from '@/lib/foursquare'
 
 // MongoDB connection
 let client
@@ -825,6 +831,111 @@ async function handleRoute(request, { params }) {
           { error: 'Failed to delete photo' },
           { status: 500 }
         ))
+      }
+    }
+
+    // =====================
+    // FOURSQUARE ENDPOINTS
+    // =====================
+
+    /**
+     * Search Foursquare venues near Sydney
+     * GET /api/foursquare/search?q=&lat=&lng=&category=&radius=&limit=
+     */
+    if (route === '/foursquare/search' && method === 'GET') {
+      const url = new URL(request.url)
+      const query = url.searchParams.get('q') || ''
+      const lat = parseFloat(url.searchParams.get('lat')) || -33.8688
+      const lng = parseFloat(url.searchParams.get('lng')) || 151.2093
+      const categoryId = url.searchParams.get('category') || null
+      const radius = parseInt(url.searchParams.get('radius')) || 15000
+      const limit = Math.min(parseInt(url.searchParams.get('limit')) || 20, 50)
+
+      try {
+        const venues = await fsqSearch({ query, lat, lng, categoryId, radius, limit })
+        return handleCORS(
+          NextResponse.json({ venues, total: venues.length, source: 'foursquare' })
+        )
+      } catch (err) {
+        console.error('Foursquare search error:', err.message)
+        // Surface a friendly error rather than 500 so the client can show a fallback
+        return handleCORS(
+          NextResponse.json(
+            {
+              error: 'Foursquare search failed',
+              details: err.message,
+              venues: [],
+              total: 0,
+            },
+            { status: err.message.includes('FOURSQUARE_API_KEY') ? 503 : 502 }
+          )
+        )
+      }
+    }
+
+    /**
+     * Get full venue details from Foursquare
+     * GET /api/foursquare/venues/:fsqId
+     */
+    if (route.startsWith('/foursquare/venues/') && !route.endsWith('/photos') && !route.endsWith('/tips') && method === 'GET') {
+      const fsqId = path[2]
+      if (!fsqId) {
+        return handleCORS(NextResponse.json({ error: 'fsqId is required' }, { status: 400 }))
+      }
+      try {
+        const venue = await fsqGetDetails(fsqId)
+        return handleCORS(NextResponse.json(venue))
+      } catch (err) {
+        console.error('Foursquare venue details error:', err.message)
+        return handleCORS(
+          NextResponse.json({ error: 'Failed to fetch venue', details: err.message }, { status: 502 })
+        )
+      }
+    }
+
+    /**
+     * Get venue photos from Foursquare
+     * GET /api/foursquare/venues/:fsqId/photos?limit=10
+     */
+    if (route.startsWith('/foursquare/venues/') && route.endsWith('/photos') && method === 'GET') {
+      const fsqId = path[2]
+      const url = new URL(request.url)
+      const limit = Math.min(parseInt(url.searchParams.get('limit')) || 10, 20)
+
+      if (!fsqId) {
+        return handleCORS(NextResponse.json({ error: 'fsqId is required' }, { status: 400 }))
+      }
+      try {
+        const photos = await fsqGetPhotos(fsqId, limit)
+        return handleCORS(NextResponse.json({ photos, total: photos.length }))
+      } catch (err) {
+        console.error('Foursquare photos error:', err.message)
+        return handleCORS(
+          NextResponse.json({ error: 'Failed to fetch photos', photos: [], total: 0 }, { status: 502 })
+        )
+      }
+    }
+
+    /**
+     * Get venue tips/reviews from Foursquare
+     * GET /api/foursquare/venues/:fsqId/tips?limit=5
+     */
+    if (route.startsWith('/foursquare/venues/') && route.endsWith('/tips') && method === 'GET') {
+      const fsqId = path[2]
+      const url = new URL(request.url)
+      const limit = Math.min(parseInt(url.searchParams.get('limit')) || 5, 10)
+
+      if (!fsqId) {
+        return handleCORS(NextResponse.json({ error: 'fsqId is required' }, { status: 400 }))
+      }
+      try {
+        const tips = await fsqGetTips(fsqId, limit)
+        return handleCORS(NextResponse.json({ tips, total: tips.length }))
+      } catch (err) {
+        console.error('Foursquare tips error:', err.message)
+        return handleCORS(
+          NextResponse.json({ error: 'Failed to fetch tips', tips: [], total: 0 }, { status: 502 })
+        )
       }
     }
 

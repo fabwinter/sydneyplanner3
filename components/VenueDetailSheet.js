@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
+import {
   MapPin, Star, Heart, ChevronDown, ChevronRight, ChevronLeft,
-  Clock, Phone, Globe, Wifi, Car, Accessibility, UtensilsCrossed, 
+  Clock, Phone, Globe, Wifi, Car, Accessibility, UtensilsCrossed,
   PawPrint, ExternalLink, ListPlus, Share2, Check, Navigation,
   X, Camera, ImagePlus, Loader2, LogIn, MapPinned, Calendar, Edit3, Trash2
 } from 'lucide-react'
@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/AuthContext'
+import FoursquareVenueExtras from '@/components/FoursquareVenueExtras'
 
 // Sign In Prompt Modal
 const SignInPrompt = ({ isOpen, onClose, action }) => {
@@ -649,24 +650,36 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
                   {/* About */}
                   <div className="mb-5">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">About</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{venue.category} in Sydney, Australia</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {venue.description || `${venue.category} in Sydney, Australia`}
+                    </p>
+                    {venue.isFoursquare && (
+                      <span className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-[#F94877] bg-[#F94877]/10 px-2 py-0.5 rounded-full">
+                        <span>⊞</span> Foursquare data
+                      </span>
+                    )}
                   </div>
 
-                  {/* Amenities - Smaller */}
-                  <div className="mb-5">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Amenities</h3>
-                    <div className="flex gap-2 overflow-x-auto pb-2">
-                      {amenities.map((a, i) => {
-                        const Icon = a.icon
-                        return (
-                          <div key={i} className={`flex flex-col items-center min-w-[70px] p-3 rounded-xl ${a.available ? 'bg-[#00A8CC]/10' : 'bg-gray-50 dark:bg-gray-800/50 opacity-40'}`}>
-                            <Icon className={`w-6 h-6 mb-1 ${a.available ? 'text-[#00A8CC]' : 'text-gray-400'}`} />
-                            <span className="text-[10px] text-gray-600 dark:text-gray-400 text-center font-medium">{a.label}</span>
-                          </div>
-                        )
-                      })}
+                  {/* Foursquare-specific sections (photos, hours, tips, contact) */}
+                  {venue.isFoursquare ? (
+                    <FoursquareVenueExtras venue={venue} />
+                  ) : (
+                    /* Amenities - Smaller (static venues only) */
+                    <div className="mb-5">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Amenities</h3>
+                      <div className="flex gap-2 overflow-x-auto pb-2">
+                        {amenities.map((a, i) => {
+                          const Icon = a.icon
+                          return (
+                            <div key={i} className={`flex flex-col items-center min-w-[70px] p-3 rounded-xl ${a.available ? 'bg-[#00A8CC]/10' : 'bg-gray-50 dark:bg-gray-800/50 opacity-40'}`}>
+                              <Icon className={`w-6 h-6 mb-1 ${a.available ? 'text-[#00A8CC]' : 'text-gray-400'}`} />
+                              <span className="text-[10px] text-gray-600 dark:text-gray-400 text-center font-medium">{a.label}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Location */}
                   <div className="mb-5">
