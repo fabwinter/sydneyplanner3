@@ -13,14 +13,17 @@ const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 )
 
-function getAuthClient(request) {
+async function getAuthClient(request) {
   const authHeader = request.headers.get('Authorization')
   if (authHeader) {
-    return createClient(
+    const token = authHeader.replace('Bearer ', '')
+    const client = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       { global: { headers: { Authorization: authHeader } } }
     )
+    await client.auth.setSession({ access_token: token, refresh_token: '' })
+    return client
   }
   return supabaseAdmin
 }
@@ -160,7 +163,7 @@ async function handleRoute(request, { params }) {
     if (route === '/venues/saved' && method === 'GET') {
       const user = await getUserFromRequest(request)
       if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const client = getAuthClient(request)
+      const client = await getAuthClient(request)
       const { data, error } = await client.from('venues').select('*').order('created_at', { ascending: false })
       if (error) return handleCORS(NextResponse.json({ error: error.message }, { status: 500 }))
       return handleCORS(NextResponse.json({ venues: data || [], total: (data || []).length }))
@@ -170,7 +173,7 @@ async function handleRoute(request, { params }) {
       const user = await getUserFromRequest(request)
       if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
       const body = await request.json()
-      const client = getAuthClient(request)
+      const client = await getAuthClient(request)
 
       const venues = Array.isArray(body) ? body : [body]
       const rows = venues.map(v => ({
@@ -205,7 +208,7 @@ async function handleRoute(request, { params }) {
       const body = await request.json()
       const { ids } = body
       if (!ids || !Array.isArray(ids)) return handleCORS(NextResponse.json({ error: 'ids array required' }, { status: 400 }))
-      const client = getAuthClient(request)
+      const client = await getAuthClient(request)
       const { error } = await client.from('venues').delete().in('id', ids)
       if (error) return handleCORS(NextResponse.json({ error: error.message }, { status: 500 }))
       return handleCORS(NextResponse.json({ success: true, deleted: ids.length }))
@@ -216,7 +219,7 @@ async function handleRoute(request, { params }) {
       if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
       const venueId = path[2]
       const body = await request.json()
-      const client = getAuthClient(request)
+      const client = await getAuthClient(request)
       const updates = {}
       if (body.name !== undefined) updates.name = body.name
       if (body.category !== undefined) updates.category = body.category
@@ -239,7 +242,7 @@ async function handleRoute(request, { params }) {
       const user = await getUserFromRequest(request)
       if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
       const venueId = path[2]
-      const client = getAuthClient(request)
+      const client = await getAuthClient(request)
       const { error } = await client.from('venues').delete().eq('id', venueId)
       if (error) return handleCORS(NextResponse.json({ error: error.message }, { status: 500 }))
       return handleCORS(NextResponse.json({ success: true }))
@@ -254,7 +257,7 @@ async function handleRoute(request, { params }) {
       if (!venue_id || !rating) return handleCORS(NextResponse.json({ error: "venue_id and rating are required" }, { status: 400 }))
 
       const userId = user?.id || null
-      const client = userId ? getAuthClient(request) : supabaseAdmin
+      const client = userId ? await getAuthClient(request) : supabaseAdmin
 
       if (userId) {
         const { data, error } = await client.from('checkins').insert([{
@@ -272,7 +275,7 @@ async function handleRoute(request, { params }) {
     if (route === '/checkins' && method === 'GET') {
       const user = await getUserFromRequest(request)
       if (!user) return handleCORS(NextResponse.json({ checkins: [], total: 0 }))
-      const client = getAuthClient(request)
+      const client = await getAuthClient(request)
       const { data, error } = await client.from('checkins').select('*').order('created_at', { ascending: false })
       if (error) return handleCORS(NextResponse.json({ checkins: [], total: 0 }))
       return handleCORS(NextResponse.json({ checkins: data || [], total: (data || []).length }))
@@ -282,7 +285,7 @@ async function handleRoute(request, { params }) {
       const user = await getUserFromRequest(request)
       if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
       const checkinId = path[1]
-      const client = getAuthClient(request)
+      const client = await getAuthClient(request)
       const { error } = await client.from('checkins').delete().eq('id', checkinId)
       if (error) return handleCORS(NextResponse.json({ error: error.message }, { status: 500 }))
       return handleCORS(NextResponse.json({ success: true }))
@@ -293,7 +296,7 @@ async function handleRoute(request, { params }) {
       if (!user) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
       const checkinId = path[1]
       const body = await request.json()
-      const client = getAuthClient(request)
+      const client = await getAuthClient(request)
       const updateFields = {}
       if (body.rating !== undefined) updateFields.rating = body.rating
       if (body.comment !== undefined) updateFields.comment = body.comment
@@ -312,7 +315,7 @@ async function handleRoute(request, { params }) {
       const body = await request.json()
       const { venue_id, venue_name, venue_category, venue_image } = body
       if (!venue_id) return handleCORS(NextResponse.json({ error: "venue_id is required" }, { status: 400 }))
-      const client = getAuthClient(request)
+      const client = await getAuthClient(request)
       const { data: existing } = await client.from('saves').select('id').eq('user_id', user.id).eq('venue_id', venue_id).maybeSingle()
       if (existing) {
         await client.from('saves').delete().eq('id', existing.id)
@@ -326,7 +329,7 @@ async function handleRoute(request, { params }) {
     if (route === '/saves' && method === 'GET') {
       const user = await getUserFromRequest(request)
       if (!user) return handleCORS(NextResponse.json({ saves: [], total: 0 }))
-      const client = getAuthClient(request)
+      const client = await getAuthClient(request)
       const { data } = await client.from('saves').select('*').order('created_at', { ascending: false })
       return handleCORS(NextResponse.json({ saves: data || [], total: (data || []).length }))
     }
