@@ -13,6 +13,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
+import { useAuth } from '@/lib/AuthContext'
 
 // Category icon and emoji mapping
 const categoryConfig = {
@@ -65,7 +66,7 @@ const BottomNav = ({ active = 'profile' }) => {
 }
 
 // Settings Sheet
-const SettingsSheet = ({ isOpen, onClose }) => {
+const SettingsSheet = ({ isOpen, onClose, onSignOut }) => {
   const [darkMode, setDarkMode] = useState(false)
   
   if (!isOpen) return null
@@ -146,7 +147,7 @@ const SettingsSheet = ({ isOpen, onClose }) => {
             </div>
           ))}
           
-          <button className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-red-50 dark:bg-red-900/20 text-red-500 font-medium">
+          <button onClick={onSignOut} className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-red-50 dark:bg-red-900/20 text-red-500 font-medium">
             <LogOut className="w-5 h-5" />
             Sign Out
           </button>
@@ -205,6 +206,7 @@ const ListCard = ({ title, count, icon: Icon, color, onClick }) => (
 
 export default function ProfilePage() {
   const router = useRouter()
+  const { user, isAuthenticated, isGodMode, signOut } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
@@ -218,7 +220,7 @@ export default function ProfilePage() {
   })
   const [categoryStats, setCategoryStats] = useState({})
   const [unlockedBadges, setUnlockedBadges] = useState([])
-  
+
   // Profile editing state
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [profileName, setProfileName] = useState('Sydney Explorer')
@@ -226,15 +228,27 @@ export default function ProfilePage() {
   const [tempName, setTempName] = useState('')
   const [tempLocation, setTempLocation] = useState('')
 
-  // Load saved profile from localStorage on mount
+  // Load saved profile from localStorage on mount, prefer auth user name
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedName = localStorage.getItem('profile_name')
       const savedLocation = localStorage.getItem('profile_location')
       if (savedName) setProfileName(savedName)
+      else if (user?.user_metadata?.name) setProfileName(user.user_metadata.name)
+      else if (user?.email) setProfileName(user.email.split('@')[0])
       if (savedLocation) setProfileLocation(savedLocation)
     }
-  }, [])
+  }, [user])
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      toast.success('Signed out')
+      router.push('/login')
+    } catch (err) {
+      toast.error('Failed to sign out')
+    }
+  }
 
   const handleEditProfile = () => {
     setTempName(profileName)
@@ -431,7 +445,17 @@ export default function ProfilePage() {
             </div>
           ) : (
             <>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">{profileName}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">{profileName}</h1>
+                {isGodMode && (
+                  <span className="text-xs font-bold text-purple-600 bg-purple-100 dark:bg-purple-900/40 px-2 py-0.5 rounded-full">
+                    GOD MODE
+                  </span>
+                )}
+              </div>
+              {user?.email && (
+                <p className="text-sm text-gray-400">{user.email}</p>
+              )}
               <div className="flex items-center gap-2 text-gray-500 text-sm">
                 <MapPin className="w-4 h-4" />
                 <span>{profileLocation}</span>
@@ -442,6 +466,14 @@ export default function ProfilePage() {
             <Zap className="w-4 h-4 text-amber-500" />
             <span className="text-amber-500 font-semibold">{stats.points} points</span>
           </div>
+          {!isAuthenticated && (
+            <Link
+              href="/login"
+              className="mt-2 w-full h-10 rounded-xl bg-[#00A8CC] text-white text-sm font-medium flex items-center justify-center gap-2"
+            >
+              Sign in for full experience
+            </Link>
+          )}
         </div>
 
         {/* Edit Profile Button */}
@@ -747,7 +779,7 @@ export default function ProfilePage() {
       </AnimatePresence>
 
       <BottomNav active="profile" />
-      <SettingsSheet isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      <SettingsSheet isOpen={showSettings} onClose={() => setShowSettings(false)} onSignOut={handleSignOut} />
     </motion.div>
   )
 }
