@@ -99,7 +99,7 @@ const VenueCard = ({ venue, index, onClick }) => {
 
 const ChatPage = () => {
   const router = useRouter()
-  const { currentVenues, setCurrentVenues, chatMessages, setChatMessages } = useVenues()
+  const { currentVenues, setCurrentVenues, chatMessages, setChatMessages, setChatFilter } = useVenues()
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [userName, setUserName] = useState('explorer')
@@ -139,7 +139,11 @@ const ChatPage = () => {
       const data = await response.json()
       const aiMessage = { id: Date.now() + 1, type: 'assistant', text: data.message, venues: data.venues || [], timestamp: new Date() }
       setChatMessages(prev => [...prev, aiMessage])
-      setCurrentVenues(data.venues || [])
+      const venues = data.venues || []
+      setCurrentVenues(venues)
+      if (venues.length > 0) {
+        setChatFilter(messageText)
+      }
     } catch (error) {
       console.error('Chat error:', error)
       toast.error('Failed to get response. Please try again.')

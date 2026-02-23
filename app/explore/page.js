@@ -159,7 +159,7 @@ const VenueListPopup = ({ venues, isOpen, onClose, onVenueClick, isLoading, isEr
 
 const ExplorePage = () => {
   const router = useRouter()
-  const { currentVenues } = useVenues()
+  const { currentVenues, chatFilter, clearChatFilter } = useVenues()
   const { isAuthenticated, godModeActive } = useAuth()
 
   const [staticVenues, setStaticVenues] = useState([])
@@ -182,6 +182,11 @@ const ExplorePage = () => {
   const [isBulkAdding, setIsBulkAdding] = useState(false)
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
 
+  const [mapCenter, setMapCenter] = useState(null)
+  const [searchAreaCenter, setSearchAreaCenter] = useState(null)
+
+  const fsqLocation = searchAreaCenter || (showUserLocation && userLocation ? userLocation : null)
+
   const {
     venues: fsqVenues,
     isLoading: fsqLoading,
@@ -189,7 +194,7 @@ const ExplorePage = () => {
   } = useSydneyVenues(
     selectedCategory,
     selectedCategoryId,
-    showUserLocation && userLocation ? userLocation : null
+    fsqLocation
   )
 
   useEffect(() => {
@@ -230,6 +235,11 @@ const ExplorePage = () => {
     setSelectedVenue(null)
     setBulkMode(false)
     setSelectedVenueIds(new Set())
+    if (key === 'all') {
+      setSearchAreaCenter(null)
+    } else if (mapCenter) {
+      setSearchAreaCenter({ ...mapCenter })
+    }
   }
 
   const handleVenueSelect = (venue) => {
@@ -290,7 +300,10 @@ const ExplorePage = () => {
   }
 
   const handleMapMove = useCallback((bounds, zoom) => {
-    if (zoom > 13) setShowSearchHere(true)
+    const centerLat = (bounds.north + bounds.south) / 2
+    const centerLng = (bounds.east + bounds.west) / 2
+    setMapCenter({ lat: centerLat, lng: centerLng })
+    if (zoom > 12) setShowSearchHere(true)
   }, [])
 
   const toggleNav = () => { setNavHidden(!navHidden); if (navigator.vibrate) navigator.vibrate(30) }
@@ -315,7 +328,8 @@ const ExplorePage = () => {
 
   const handleBulkAdd = async () => {
     if (!isAuthenticated) {
-      toast.error('Sign in to save venues')
+      toast.error('Please sign in to save venues')
+      router.push('/profile')
       return
     }
     setIsBulkAdding(true)
@@ -325,6 +339,11 @@ const ExplorePage = () => {
         method: 'POST',
         body: JSON.stringify(venuesToAdd),
       })
+      if (res.status === 401) {
+        toast.error('Session expired. Please sign in again.')
+        router.push('/profile')
+        return
+      }
       const data = await res.json()
       if (data.success) {
         toast.success(`${data.count} venue${data.count > 1 ? 's' : ''} saved to database`)
@@ -447,11 +466,26 @@ const ExplorePage = () => {
         )}
       </div>
 
+      {/* Chat filter banner */}
+      <AnimatePresence>
+        {chatFilter && currentVenues.length > 0 && !bulkMode && (
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-4 left-4 right-16 z-[1001]">
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#00A8CC] text-white text-sm font-medium shadow-lg max-w-md mx-auto">
+              <Search className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">{chatFilter}</span>
+              <button onClick={() => { clearChatFilter(); setSelectedCategory('all'); setSelectedCategoryId(null) }} className="ml-auto flex-shrink-0 p-0.5 rounded-full hover:bg-white/20">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Search this area pill */}
       <AnimatePresence>
-        {showSearchHere && !bulkMode && (
+        {showSearchHere && !bulkMode && !chatFilter && (
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-4 left-1/2 -translate-x-1/2 z-[1001]">
-            <button onClick={() => { setShowSearchHere(false); toast.success('Searching...') }} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-md text-gray-700 text-sm font-medium">
+            <button onClick={() => { setShowSearchHere(false); if (mapCenter) { setSearchAreaCenter({ ...mapCenter }); if (selectedCategory === 'all') { setSelectedCategory('cafe'); setSelectedCategoryId(FSQ_CATEGORIES.cafe.id) } } }} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-md text-gray-700 text-sm font-medium">
               <RotateCcw className="w-4 h-4" /><span>Search this area</span>
             </button>
           </motion.div>
