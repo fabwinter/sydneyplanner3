@@ -525,6 +525,10 @@ const VenueDetailSheet = ({ venue, isOpen, onClose }) => {
         method: 'POST',
         body: JSON.stringify(venue),
       })
+      if (res.status === 401) {
+        toast.error('Session expired. Please sign in again.')
+        return
+      }
       const data = await res.json()
       if (data.success) toast.success('Venue saved to database')
       else toast.error(data.error || 'Failed to save')
